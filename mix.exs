@@ -27,7 +27,8 @@ defmodule Arc.Storage.GCS.Mixfile do
 
   defp deps do
     [
-      {:goth, "~> 0.4"}
+      {:goth, "~> 0.4"},
+      {:sweet_xml, "~> 0.6"}
     ]
   end
 end
