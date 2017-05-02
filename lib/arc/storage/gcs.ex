@@ -5,7 +5,6 @@ defmodule Arc.Storage.GCS do
   @endpoint "storage.googleapis.com"
   @full_control_scope "https://www.googleapis.com/auth/devstorage.full_control"
 
-
   def put(definition, version, {file, scope}) do
     path =
       definition.storage_dir(version, {file, scope})
@@ -28,20 +27,23 @@ defmodule Arc.Storage.GCS do
     end)
   end
 
-  defp do_put(%{binary: file_binary} = file, path)
-    when is_binary(file_binary)
-  do
-    # TODO
+  defp do_put(%{binary: nil, file_name: file_name}, path, gcs_options) do
+    do_put(path, {:file, file_name}, gcs_options, file_name)
   end
 
-  defp do_put(file, path, gcs_options) do
-    body = {:file, file.file_name}
-    headers = gcs_options ++ [{"Authorization", "Bearer #{get_token()}"}]
+  defp do_put(%{binary: binary, file_name: file_name}, path, gcs_options)
+    when is_binary(binary)
+  do
+    do_put(path, binary, gcs_options, file_name)
+  end
+
+  defp do_put(path, body, gcs_options, file_name) do
     url = "#{@endpoint}/#{bucket()}/#{path}"
+    headers = gcs_options ++ [{"Authorization", "Bearer #{get_token()}"}]
 
     case HTTPoison.request!(:put, url, body, headers, []) do
       %{status_code: 200} ->
-        {:ok, file.file_name}
+        {:ok, file_name}
       %{body: body} ->
         error = xpath(body, ~x"//Details/text()"S)
         {:error, error}
