@@ -7,9 +7,7 @@ defmodule Arc.Storage.GCS do
 
   def put(definition, version, {file, _scope} =file_and_scope) do
     path = gcs_key(definition, version, file_and_scope)
-
     acl = definition.acl(version, file_and_scope)
-
     gcs_options =
       get_gcs_options(definition, version, file_and_scope)
       |> ensure_keyword_list
@@ -19,17 +17,23 @@ defmodule Arc.Storage.GCS do
     do_put(file, path, gcs_options)
   end
 
-  def delete(definition, version, {file, scope}) do
-    path =
-      definition.storage_dir(version, {file, scope})
-      |> Path.join(file.file_name)
+  def url(definition, version, file_and_scope, _options) do
+    url =
+      gcs_key(definition, version, file_and_scope, true)
+      |> build_json_url
+
+    case HTTPoison.get!(url, default_headers()) do
+      %{status_code: 200, body: body} -> Poison.decode!(body)["mediaLink"]
+      _ -> :error
+    end
+  end
 
   def delete(definition, version, file_and_scope) do
     url =
       gcs_key(definition, version, file_and_scope)
       |> build_url
 
-    case HTTPoison.request!(:delete, url, "", default_headers(), []) do
+    case HTTPoison.delete!(url, default_headers()) do
       %{status_code: 204} -> :ok
       _ -> :error
     end
@@ -49,7 +53,7 @@ defmodule Arc.Storage.GCS do
     url = build_url(path)
     headers = gcs_options ++ default_headers()
 
-    case HTTPoison.request!(:put, url, body, headers, []) do
+    case HTTPoison.put!(url, body, headers) do
       %{status_code: 200} ->
         {:ok, file_name}
       %{body: body} ->
@@ -76,7 +80,18 @@ defmodule Arc.Storage.GCS do
     end
   end
 
-  defp gcs_key(definition, version, file_and_scope) do
+  defp gcs_key(definition, version, file_and_scope, escape \\ false)
+
+  defp gcs_key(definition, version, file_and_scope, false) do
+    do_gcs_key(definition, version, file_and_scope)
+  end
+
+  defp gcs_key(definition, version, file_and_scope, true) do
+    do_gcs_key(definition, version, file_and_scope)
+    |> URI.encode_www_form
+  end
+
+  defp do_gcs_key(definition, version, file_and_scope) do
     Path.join([
       definition.storage_dir(version, file_and_scope),
       Arc.Definition.Versioning.resolve_file_name(definition, version, file_and_scope)
@@ -98,6 +113,10 @@ defmodule Arc.Storage.GCS do
 
   defp build_url(path) do
     "#{@endpoint}/#{bucket()}/#{path}"
+  end
+
+  defp build_json_url(object) do
+    "https://www.googleapis.com/storage/v1/b/#{bucket()}/o/#{object}"
   end
 
   defp ensure_keyword_list(list) when is_list(list), do: list
