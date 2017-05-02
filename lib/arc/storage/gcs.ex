@@ -34,14 +34,14 @@ defmodule Arc.Storage.GCS do
     end
   end
 
-  defp do_put(%{binary: nil, file_name: file_name}, path, gcs_options) do
-    do_put(path, {:file, file_name}, gcs_options, file_name)
+  defp do_put(%{binary: nil} = file, path, gcs_options) do
+    do_put(path, {:file, file.path}, gcs_options, file.file_name)
   end
 
-  defp do_put(%{binary: binary, file_name: file_name}, path, gcs_options)
+  defp do_put(%{binary: binary} = file, path, gcs_options)
     when is_binary(binary)
   do
-    do_put(path, binary, gcs_options, file_name)
+    do_put(path, binary, gcs_options, file.file_name)
   end
 
   defp do_put(path, body, gcs_options, file_name) do
