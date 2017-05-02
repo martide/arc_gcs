@@ -28,7 +28,8 @@ defmodule Arc.Storage.GCS.Mixfile do
   defp deps do
     [
       {:goth, "~> 0.4"},
-      {:sweet_xml, "~> 0.6"}
+      {:sweet_xml, "~> 0.6"},
+      {:arc, "~> 0.8", only: :test}
     ]
   end
 end
