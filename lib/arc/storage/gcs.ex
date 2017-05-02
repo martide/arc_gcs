@@ -5,15 +5,13 @@ defmodule Arc.Storage.GCS do
   @endpoint "storage.googleapis.com"
   @full_control_scope "https://www.googleapis.com/auth/devstorage.full_control"
 
-  def put(definition, version, {file, scope}) do
-    path =
-      definition.storage_dir(version, {file, scope})
-      |> Path.join(file.file_name)
+  def put(definition, version, {file, _scope} =file_and_scope) do
+    path = gcs_key(definition, version, file_and_scope)
 
-    acl = definition.acl(version, {file, scope})
+    acl = definition.acl(version, file_and_scope)
 
     gcs_options =
-      get_gcs_options(definition, version, {file, scope})
+      get_gcs_options(definition, version, file_and_scope)
       |> ensure_keyword_list
       |> Keyword.put(:x_goog_acl, acl)
       |> transform_headers
@@ -26,7 +24,10 @@ defmodule Arc.Storage.GCS do
       definition.storage_dir(version, {file, scope})
       |> Path.join(file.file_name)
 
-    url = build_url(path)
+  def delete(definition, version, file_and_scope) do
+    url =
+      gcs_key(definition, version, file_and_scope)
+      |> build_url
 
     case HTTPoison.request!(:delete, url, "", default_headers(), []) do
       %{status_code: 204} -> :ok
@@ -73,6 +74,13 @@ defmodule Arc.Storage.GCS do
       {:system, env_var} when is_binary(env_var) -> System.get_env(env_var)
       name -> name
     end
+  end
+
+  defp gcs_key(definition, version, file_and_scope) do
+    Path.join([
+      definition.storage_dir(version, file_and_scope),
+      Arc.Definition.Versioning.resolve_file_name(definition, version, file_and_scope)
+    ])
   end
 
   defp get_gcs_options(definition, version, {file, scope}) do
