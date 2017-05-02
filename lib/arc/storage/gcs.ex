@@ -21,10 +21,17 @@ defmodule Arc.Storage.GCS do
     do_put(file, path, gcs_options)
   end
 
-  defp transform_headers(headers) do
-    Enum.map(headers, fn {key, val} ->
-      {to_string(key) |> String.replace("_", "-"), val}
-    end)
+  def delete(definition, version, {file, scope}) do
+    path =
+      definition.storage_dir(version, {file, scope})
+      |> Path.join(file.file_name)
+
+    url = build_url(path)
+
+    case HTTPoison.request!(:delete, url, "", default_headers(), []) do
+      %{status_code: 204} -> :ok
+      _ -> :error
+    end
   end
 
   defp do_put(%{binary: nil, file_name: file_name}, path, gcs_options) do
@@ -38,8 +45,8 @@ defmodule Arc.Storage.GCS do
   end
 
   defp do_put(path, body, gcs_options, file_name) do
-    url = "#{@endpoint}/#{bucket()}/#{path}"
-    headers = gcs_options ++ [{"Authorization", "Bearer #{get_token()}"}]
+    url = build_url(path)
+    headers = gcs_options ++ default_headers()
 
     case HTTPoison.request!(:put, url, body, headers, []) do
       %{status_code: 200} ->
@@ -48,6 +55,12 @@ defmodule Arc.Storage.GCS do
         error = xpath(body, ~x"//Details/text()"S)
         {:error, error}
     end
+  end
+
+  defp transform_headers(headers) do
+    Enum.map(headers, fn {key, val} ->
+      {to_string(key) |> String.replace("_", "-"), val}
+    end)
   end
 
   defp get_token do
@@ -69,6 +82,14 @@ defmodule Arc.Storage.GCS do
       UndefinedFunctionError ->
         []
     end
+  end
+
+  defp default_headers do
+    [{"Authorization", "Bearer #{get_token()}"}]
+  end
+
+  defp build_url(path) do
+    "#{@endpoint}/#{bucket()}/#{path}"
   end
 
   defp ensure_keyword_list(list) when is_list(list), do: list
