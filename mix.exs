@@ -9,7 +9,9 @@ defmodule Arc.Storage.GCS.Mixfile do
      elixir: "~> 1.4",
      deps: deps(),
      description: description(),
-     package: package()]
+     package: package(),
+     test_coverage: [tool: ExCoveralls],
+     preferred_cli_env: ["coveralls": :test, "coveralls.detail": :test, "coveralls.post": :test, "coveralls.html": :test]]
   end
 
   defp description do
@@ -29,7 +31,8 @@ defmodule Arc.Storage.GCS.Mixfile do
     [
       {:goth, "~> 0.4"},
       {:sweet_xml, "~> 0.6"},
-      {:arc, "~> 0.8", only: :test}
+      {:arc, "~> 0.8", only: :test},
+      {:excoveralls, "~> 0.6", only: :test}
     ]
   end
 end

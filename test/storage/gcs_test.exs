@@ -13,6 +13,7 @@ defmodule ArcTest.Storage.GCS do
     def acl(_, {_, :private}), do: :private
 
     def gcs_object_headers(:original, {_, :with_content_type}), do: [content_type: "image/png"]
+    def gcs_object_headers(:original, {_, :map}), do: %{content_type: "image/png"}
     def gcs_object_headers(:original, _), do: []
   end
 
@@ -88,6 +89,22 @@ defmodule ArcTest.Storage.GCS do
   end
 
   @tag timeout: 15000
+  test "public put with file-binary and get" do
+    assert {:ok, "image.png"} = DummyDefinition.store(%{filename: "image.png", binary: File.read!(@img)})
+    assert_public(DummyDefinition, "image.png")
+    delete_and_assert_not_found(DummyDefinition, "image.png")
+  end
+
+  @tag timeout: 15000
+  test "public put and get with System env" do
+    Application.put_env(:arc, :bucket, {:system, "ARC_TEST_BUCKET"})
+    assert {:ok, "image.png"} == DummyDefinition.store(@img)
+    assert_public(DummyDefinition, "image.png")
+    delete_and_assert_not_found(DummyDefinition, "image.png")
+    Application.put_env(:arc, :bucket, System.get_env("ARC_TEST_BUCKET"))
+  end
+
+  @tag timeout: 15000
   test "private put" do
     #put the image as private
     assert {:ok, "image.png"} == DummyDefinition.store({@img, :private})
@@ -98,6 +115,13 @@ defmodule ArcTest.Storage.GCS do
   @tag timeout: 15000
   test "content_type" do
     {:ok, "image.png"} = DummyDefinition.store({@img, :with_content_type})
+    assert_header(DummyDefinition, "image.png", "content-type", "image/png")
+    delete_and_assert_not_found(DummyDefinition, "image.png")
+  end
+
+  @tag timeout: 15000
+  test "content_type map" do
+    {:ok, "image.png"} = DummyDefinition.store({@img, :map})
     assert_header(DummyDefinition, "image.png", "content-type", "image/png")
     delete_and_assert_not_found(DummyDefinition, "image.png")
   end
