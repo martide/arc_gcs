@@ -63,6 +63,8 @@ defmodule ArcTest.Storage.GCS do
     quote bind_quoted: [definition: definition, args: args] do
       url = definition.url(args, signed: false)
       assert %{status_code: 403} = HTTPoison.get!(url)
+      signed_url = definition.url(args, signed: true)
+      assert %{status_code: 200} = HTTPoison.get!(signed_url)
     end
   end
 
