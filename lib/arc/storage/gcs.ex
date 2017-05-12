@@ -17,15 +17,42 @@ defmodule Arc.Storage.GCS do
     do_put(file, path, gcs_options)
   end
 
-  def url(definition, version, file_and_scope, _options) do
+  def url(definition, version, file_and_scope, options) do
+    with true <- object_exists?(definition, version, file_and_scope) do
+      case Keyword.get(options, :signed, false) do
+        true ->
+          definition
+          |> gcs_key(version, file_and_scope, escape: true)
+          |> build_signed_url
+        false ->
+          definition
+          |> gcs_key(version, file_and_scope, escape: false)
+          |> build_url
+      end
+    else
+      _ -> :error
+    end
+  end
+
+  defp object_exists?(definition, version, file_and_scope) do
     url =
-      gcs_key(definition, version, file_and_scope, true)
+      gcs_key(definition, version, file_and_scope, escape: true)
       |> build_json_url
 
     case HTTPoison.get!(url, default_headers()) do
-      %{status_code: 200, body: body} -> Poison.decode!(body)["mediaLink"]
-      _ -> :error
+      %{status_code: 200} -> true
+      _ -> false
     end
+  end
+
+  defp build_signed_url(endpoint) do
+    {:ok, client_id} = Goth.Config.get("client_email")
+    expiration = System.os_time(:seconds) + 86_400
+    path = "/#{bucket()}/#{endpoint}"
+    base_url = build_url(endpoint)
+    signature_string = url_to_sign("GET", "", "", expiration, "", path)
+    url_encoded_signature = base64_sign_url(signature_string)
+    "#{base_url}?GoogleAccessId=#{client_id}&Expires=#{expiration}&Signature=#{url_encoded_signature}"
   end
 
   def delete(definition, version, file_and_scope) do
@@ -80,15 +107,13 @@ defmodule Arc.Storage.GCS do
     end
   end
 
-  defp gcs_key(definition, version, file_and_scope, escape \\ false)
-
-  defp gcs_key(definition, version, file_and_scope, false) do
-    do_gcs_key(definition, version, file_and_scope)
-  end
-
-  defp gcs_key(definition, version, file_and_scope, true) do
-    do_gcs_key(definition, version, file_and_scope)
-    |> URI.encode_www_form
+  defp gcs_key(definition, version, file_and_scope, options \\ []) do
+    escape = Keyword.get(options, :escape, false)
+    key = do_gcs_key(definition, version, file_and_scope)
+    case escape do
+      true -> URI.encode_www_form(key)
+      false -> key
+    end
   end
 
   defp do_gcs_key(definition, version, file_and_scope) do
@@ -121,4 +146,21 @@ defmodule Arc.Storage.GCS do
 
   defp ensure_keyword_list(list) when is_list(list), do: list
   defp ensure_keyword_list(map) when is_map(map), do: Map.to_list(map)
+
+
+  defp url_to_sign(verb, md5, type, expiration, headers, resource) do
+    "#{verb}\n#{md5}\n#{type}\n#{expiration}\n#{headers}#{resource}"
+  end
+
+  defp base64_sign_url(plaintext) do
+    {:ok, pem_bin} = Goth.Config.get("private_key")
+    [pem_key_data] = :public_key.pem_decode(pem_bin)
+    pem_key = :public_key.pem_entry_decode(pem_key_data)
+    rsa_key = :public_key.der_decode(:'RSAPrivateKey', elem(pem_key, 3))
+
+    plaintext
+    |> :public_key.sign(:sha256, rsa_key)
+    |> Base.encode64
+    |> URI.encode_www_form
+  end
 end
