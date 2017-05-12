@@ -30,6 +30,12 @@ config :goth,
   json: "/path/to/json" |> Path.expand |> File.read!
 ```
 
+### Note
+Basic functionality from [`Arc`](https://github.com/stavro/arc) including
+1. store with acl
+2. delete
+3. generate url and signed url
+
 ## License
 
 Copyright 2017 Martide Limited
