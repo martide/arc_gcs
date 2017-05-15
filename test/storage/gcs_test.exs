@@ -46,13 +46,13 @@ defmodule ArcTest.Storage.GCS do
   defmacro delete_and_assert_not_found(definition, args) do
     quote bind_quoted: [definition: definition, args: args] do
       :ok = definition.delete(args)
-      assert DummyDefinition.url(args) == :error
+      assert DummyDefinition.url(args, signed: false) == :error
     end
   end
 
   defmacro assert_header(definition, args, header, value) do
     quote bind_quoted: [definition: definition, args: args, header: header, value: value] do
-      url = definition.url(args)
+      url = definition.url(args, signed: true)
       %{status_code: 200, headers: headers} = HTTPoison.get!(url)
       assert Enum.find(headers, fn {"Content-Type", "image/png"} -> true
                                    _ -> false end)
@@ -61,21 +61,23 @@ defmodule ArcTest.Storage.GCS do
 
   defmacro assert_private(definition, args) do
     quote bind_quoted: [definition: definition, args: args] do
-      url = definition.url(args)
-      assert %{status_code: 401} = HTTPoison.get!(url)
+      url = definition.url(args, signed: false)
+      assert %{status_code: 403} = HTTPoison.get!(url)
+      signed_url = definition.url(args, signed: true)
+      assert %{status_code: 200} = HTTPoison.get!(signed_url)
     end
   end
 
   defmacro assert_public(definition, args) do
     quote bind_quoted: [definition: definition, args: args] do
-      url = definition.url(args)
+      url = definition.url(args, signed: true)
       assert %{status_code: 200} = HTTPoison.get!(url)
     end
   end
 
   defmacro assert_public_with_extension(definition, args, version, extension) do
     quote bind_quoted: [definition: definition, version: version, args: args, extension: extension] do
-      url = definition.url(args, version)
+      url = definition.url(args, version, signed: true)
       assert %{status_code: 200} = HTTPoison.get!(url)
       assert URI.parse(url).path|> Path.extname == extension
     end
@@ -130,8 +132,8 @@ defmodule ArcTest.Storage.GCS do
   test "delete with scope" do
     scope = %{id: 1}
     {:ok, path} = DefinitionWithScope.store({"test/support/image.png", scope})
-    assert DefinitionWithScope.url({path, scope}) =~
-      "https://www.googleapis.com/download/storage/v1/b/#{env_bucket()}/o/uploads%2Fwith_scopes%2F1%2Fimage.png"
+    assert DefinitionWithScope.url({path, scope}, signed: true) =~
+      "storage.googleapis.com/#{env_bucket()}/uploads%2Fwith_scopes%2F1%2Fimage.png"
     assert_public(DefinitionWithScope, {path, scope})
     delete_and_assert_not_found(DefinitionWithScope, {path, scope})
   end
