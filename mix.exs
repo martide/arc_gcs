@@ -29,10 +29,11 @@ defmodule Arc.Storage.GCS.Mixfile do
 
   defp deps do
     [
-      {:goth, "~> 0.4"},
-      {:sweet_xml, "~> 0.6"},
       {:arc, "~> 0.8", only: :test},
-      {:excoveralls, "~> 0.6", only: :test}
+      {:excoveralls, "~> 0.6", only: :test},
+      {:ex_doc, ">= 0.0.0", only: :dev},
+      {:goth, "~> 0.4"},
+      {:sweet_xml, "~> 0.6"}
     ]
   end
 end
