@@ -137,7 +137,7 @@ defmodule Arc.Storage.GCS do
   end
 
   defp build_url(path) do
-    "#{@endpoint}/#{bucket()}/#{path}"
+    "https://#{@endpoint}/#{bucket()}/#{path}"
   end
 
   defp build_json_url(object) do
