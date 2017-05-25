@@ -18,30 +18,15 @@ defmodule Arc.Storage.GCS do
   end
 
   def url(definition, version, file_and_scope, options) do
-    with true <- object_exists?(definition, version, file_and_scope) do
-      case Keyword.get(options, :signed, false) do
-        true ->
-          definition
-          |> gcs_key(version, file_and_scope, escape: true)
-          |> build_signed_url
-        false ->
-          definition
-          |> gcs_key(version, file_and_scope, escape: false)
-          |> build_url
-      end
-    else
-      _ -> :error
-    end
-  end
-
-  defp object_exists?(definition, version, file_and_scope) do
-    url =
-      gcs_key(definition, version, file_and_scope, escape: true)
-      |> build_json_url
-
-    case HTTPoison.get!(url, default_headers()) do
-      %{status_code: 200} -> true
-      _ -> false
+    case Keyword.get(options, :signed, false) do
+      true ->
+        definition
+        |> gcs_key(version, file_and_scope, escape: true)
+        |> build_signed_url
+      false ->
+        definition
+        |> gcs_key(version, file_and_scope, escape: false)
+        |> build_url
     end
   end
 

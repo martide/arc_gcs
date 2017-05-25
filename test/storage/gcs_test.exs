@@ -46,7 +46,10 @@ defmodule ArcTest.Storage.GCS do
   defmacro delete_and_assert_not_found(definition, args) do
     quote bind_quoted: [definition: definition, args: args] do
       :ok = definition.delete(args)
-      assert DummyDefinition.url(args, signed: false) == :error
+      signed_url = DummyDefinition.url(args, signed: true)
+      {:ok, {{_, code, msg}, _, _}} = :httpc.request(to_char_list(signed_url))
+      assert 404 == code
+      assert 'Not Found' == msg
     end
   end
 
