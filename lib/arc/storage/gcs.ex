@@ -62,7 +62,9 @@ defmodule Arc.Storage.GCS do
   end
 
   defp do_put(path, body, gcs_options, file_name) do
-    url = build_url(path)
+    url = path
+          |> build_url
+          |> URI.encode
     headers = gcs_options ++ default_headers()
 
     case HTTPoison.put!(url, body, headers) do
