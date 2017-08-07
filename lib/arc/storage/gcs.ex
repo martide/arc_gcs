@@ -18,15 +18,10 @@ defmodule Arc.Storage.GCS do
   end
 
   def url(definition, version, file_and_scope, options) do
+    key = gcs_key(definition, version, file_and_scope)
     case Keyword.get(options, :signed, false) do
-      true ->
-        definition
-        |> gcs_key(version, file_and_scope, escape: true)
-        |> build_signed_url
-      false ->
-        definition
-        |> gcs_key(version, file_and_scope, escape: false)
-        |> build_url
+      true -> build_signed_url(key)
+      false -> build_url(key)
     end
   end
 
@@ -92,13 +87,10 @@ defmodule Arc.Storage.GCS do
     end
   end
 
-  defp gcs_key(definition, version, file_and_scope, options \\ []) do
-    escape = Keyword.get(options, :escape, false)
-    key = do_gcs_key(definition, version, file_and_scope)
-    case escape do
-      true -> URI.encode_www_form(key)
-      false -> key
-    end
+  defp gcs_key(definition, version, file_and_scope) do
+    definition
+    |> do_gcs_key(version, file_and_scope)
+    |> URI.encode
   end
 
   defp do_gcs_key(definition, version, file_and_scope) do
@@ -123,10 +115,6 @@ defmodule Arc.Storage.GCS do
 
   defp build_url(path) do
     "https://#{@endpoint}/#{bucket()}/#{path}"
-  end
-
-  defp build_json_url(object) do
-    "https://www.googleapis.com/storage/v1/b/#{bucket()}/o/#{object}"
   end
 
   defp ensure_keyword_list(list) when is_list(list), do: list
