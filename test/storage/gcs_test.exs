@@ -1,7 +1,8 @@
 defmodule ArcTest.Storage.GCS do
-  use ExUnit.Case, async: false
+  use ExUnit.Case, async: true
 
-  @img "test/support/image.png"
+  @img_name "image space.png"
+  @img_path "test/support/#{@img_name}"
 
   defmodule DummyDefinition do
     use Arc.Definition
@@ -9,12 +10,17 @@ defmodule ArcTest.Storage.GCS do
     def __storage, do: Arc.Storage.GCS
 
     @acl :public_read
-    def storage_dir(_, _), do: "arctest/uploads"
+    def storage_dir(_, _), do: "arc test"
+
+    def filename(_, {file, name}) do
+      name || file.file_name
+    end
+
     def acl(_, {_, :private}), do: :private
 
-    def gcs_object_headers(:original, {_, :with_content_type}), do: [content_type: "image/png"]
-    def gcs_object_headers(:original, {_, :map}), do: %{content_type: "image/png"}
-    def gcs_object_headers(:original, _), do: []
+    def gcs_object_headers(:original, {_, :with_content_type}), do: [content_type: "image/png", 'cache-control': "no-store"]
+    def gcs_object_headers(:original, {_, :map}), do: %{content_type: "image/png", 'cache-control': "no-store"}
+    def gcs_object_headers(:original, _), do: ['cache-control': "no-store"]
   end
 
   defmodule DefinitionWithThumbnail do
@@ -41,6 +47,10 @@ defmodule ArcTest.Storage.GCS do
 
   def env_bucket do
     System.get_env("ARC_TEST_BUCKET")
+  end
+
+  def random_name do
+    8 |> :crypto.strong_rand_bytes |> Base.encode16
   end
 
   defmacro delete_and_assert_not_found(definition, args) do
@@ -73,7 +83,7 @@ defmodule ArcTest.Storage.GCS do
 
   defmacro assert_public(definition, args) do
     quote bind_quoted: [definition: definition, args: args] do
-      url = definition.url(args, signed: true)
+      url = definition.url(args, signed: false)
       assert %{status_code: 200} = HTTPoison.get!(url)
     end
   end
@@ -86,57 +96,61 @@ defmodule ArcTest.Storage.GCS do
     end
   end
 
-  @tag timeout: 15000
-  test "public put and get" do
-    assert {:ok, "image.png"} == DummyDefinition.store(@img)
-    assert_public(DummyDefinition, "image.png")
-    delete_and_assert_not_found(DummyDefinition, "image.png")
+  setup do
+    {:ok, name: random_name()}
   end
 
   @tag timeout: 15000
-  test "public put with file-binary and get" do
-    assert {:ok, "image.png"} = DummyDefinition.store(%{filename: "image.png", binary: File.read!(@img)})
-    assert_public(DummyDefinition, "image.png")
-    delete_and_assert_not_found(DummyDefinition, "image.png")
+  test "public put and get", %{name: name} do
+    assert {:ok, @img_name} == DummyDefinition.store({@img_path, name})
+    assert_public(DummyDefinition, {@img_name, name})
+    delete_and_assert_not_found(DummyDefinition, {@img_name, name})
   end
 
   @tag timeout: 15000
-  test "public put and get with System env" do
-    Application.put_env(:arc, :bucket, {:system, "ARC_TEST_BUCKET"})
-    assert {:ok, "image.png"} == DummyDefinition.store(@img)
-    assert_public(DummyDefinition, "image.png")
-    delete_and_assert_not_found(DummyDefinition, "image.png")
-    Application.put_env(:arc, :bucket, System.get_env("ARC_TEST_BUCKET"))
+  test "public put with file-binary and get", %{name: name} do
+    assert {:ok, @img_name} = DummyDefinition.store({%{filename: @img_name, binary: File.read!(@img_path)}, name})
+    assert_public(DummyDefinition, {@img_name, name})
+    delete_and_assert_not_found(DummyDefinition, {@img_name, name})
   end
+
+  # @tag timeout: 15000
+  # test "public put and get with System env", %{name: name} do
+  #   Application.put_env(:arc, :bucket, {:system, "ARC_TEST_BUCKET"})
+  #   assert {:ok, @img_name} == DummyDefinition.store({@img_path, name})
+  #   assert_public(DummyDefinition, {@img_name, name})
+  #   delete_and_assert_not_found(DummyDefinition, {@img_name, name})
+  #   Application.put_env(:arc, :bucket, System.get_env("ARC_TEST_BUCKET"))
+  # end
 
   @tag timeout: 15000
   test "private put" do
     #put the image as private
-    assert {:ok, "image.png"} == DummyDefinition.store({@img, :private})
-    assert_private(DummyDefinition, "image.png")
-    delete_and_assert_not_found(DummyDefinition, "image.png")
+    assert {:ok, @img_name} == DummyDefinition.store({@img_path, :private})
+    assert_private(DummyDefinition, {@img_name, :private})
+    delete_and_assert_not_found(DummyDefinition, {@img_name, :private})
   end
 
   @tag timeout: 15000
   test "content_type" do
-    {:ok, "image.png"} = DummyDefinition.store({@img, :with_content_type})
-    assert_header(DummyDefinition, "image.png", "content-type", "image/png")
-    delete_and_assert_not_found(DummyDefinition, "image.png")
+    {:ok, @img_name} = DummyDefinition.store({@img_path, :with_content_type})
+    assert_header(DummyDefinition, {@img_name, :with_content_type}, "content-type", "image/png")
+    delete_and_assert_not_found(DummyDefinition, {@img_name, :with_content_type})
   end
 
   @tag timeout: 15000
   test "content_type map" do
-    {:ok, "image.png"} = DummyDefinition.store({@img, :map})
-    assert_header(DummyDefinition, "image.png", "content-type", "image/png")
-    delete_and_assert_not_found(DummyDefinition, "image.png")
+    {:ok, @img_name} = DummyDefinition.store({@img_path, :map})
+    assert_header(DummyDefinition, {@img_name, :map}, "content-type", "image/png")
+    delete_and_assert_not_found(DummyDefinition, {@img_name, :map})
   end
 
   @tag timeout: 150000
   test "delete with scope" do
     scope = %{id: 1}
-    {:ok, path} = DefinitionWithScope.store({"test/support/image.png", scope})
+    {:ok, path} = DefinitionWithScope.store({@img_path, scope})
     assert DefinitionWithScope.url({path, scope}, signed: true) =~
-      "storage.googleapis.com/#{env_bucket()}/uploads%2Fwith_scopes%2F1%2Fimage.png"
+      "storage.googleapis.com/#{env_bucket()}/uploads/with_scopes/1/image%20space.png"
     assert_public(DefinitionWithScope, {path, scope})
     delete_and_assert_not_found(DefinitionWithScope, {path, scope})
   end
@@ -144,15 +158,15 @@ defmodule ArcTest.Storage.GCS do
   @tag timeout: 150000
   test "put with error" do
     Application.put_env(:arc, :bucket, "unknown-bucket")
-    {:error, res} = DummyDefinition.store("test/support/image.png")
+    {:error, res} = DummyDefinition.store(@img_path)
     Application.put_env :arc, :bucket, env_bucket()
     assert res
   end
 
   @tag timeout: 150000
-  test "put with converted version" do
-    assert {:ok, "image.png"} == DefinitionWithThumbnail.store(@img)
-    assert_public_with_extension(DefinitionWithThumbnail, "image.png", :thumb, ".jpg")
-    delete_and_assert_not_found(DefinitionWithThumbnail, "image.png")
+  test "put with converted version", %{name: name} do
+    assert {:ok, @img_name} == DefinitionWithThumbnail.store({@img_path, name})
+    assert_public_with_extension(DefinitionWithThumbnail, {@img_name, name}, :thumb, ".jpg")
+    delete_and_assert_not_found(DefinitionWithThumbnail, {@img_name, name})
   end
 end
