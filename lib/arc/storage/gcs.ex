@@ -117,10 +117,6 @@ defmodule Arc.Storage.GCS do
     "https://#{@endpoint}/#{bucket()}/#{path}"
   end
 
-  defp build_json_url(object) do
-    "https://www.googleapis.com/storage/v1/b/#{bucket()}/o/#{object}"
-  end
-
   defp ensure_keyword_list(list) when is_list(list), do: list
   defp ensure_keyword_list(map) when is_map(map), do: Map.to_list(map)
 

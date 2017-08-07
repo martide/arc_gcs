@@ -1,7 +1,7 @@
 defmodule ArcTest.Storage.GCS do
   use ExUnit.Case, async: true
 
-  @img_name "image space.png"
+  @img_name "image.png"
   @img_path "test/support/#{@img_name}"
 
   defmodule DummyDefinition do
@@ -34,6 +34,8 @@ defmodule ArcTest.Storage.GCS do
     def transform(:thumb, _) do
       {"convert", "-strip -thumbnail 100x100^ -gravity center -extent 100x100 -format jpg", :jpg}
     end
+
+    def gcs_object_headers(_, _), do: ['cache-control': "no-store"]
   end
 
   defmodule DefinitionWithScope do
@@ -42,7 +44,9 @@ defmodule ArcTest.Storage.GCS do
     def __storage, do: Arc.Storage.GCS
 
     @acl :public_read
-    def storage_dir(_, {_, scope}), do: "uploads/with_scopes/#{scope.id}"
+    def storage_dir(_, {_, scope}), do: "arc test/with-scopes/#{scope.id}"
+
+    def gcs_object_headers(_, _), do: ['cache-control': "no-store"]
   end
 
   def env_bucket do
@@ -56,8 +60,8 @@ defmodule ArcTest.Storage.GCS do
   defmacro delete_and_assert_not_found(definition, args) do
     quote bind_quoted: [definition: definition, args: args] do
       :ok = definition.delete(args)
-      signed_url = DummyDefinition.url(args, signed: true)
-      {:ok, {{_, code, msg}, _, _}} = :httpc.request(to_char_list(signed_url))
+      signed_url = definition.url(args, signed: true)
+      {:ok, {{_, code, msg}, _, _}} = :httpc.request(to_charlist(signed_url))
       assert 404 == code
       assert 'Not Found' == msg
     end
@@ -114,14 +118,14 @@ defmodule ArcTest.Storage.GCS do
     delete_and_assert_not_found(DummyDefinition, {@img_name, name})
   end
 
-  # @tag timeout: 15000
-  # test "public put and get with System env", %{name: name} do
-  #   Application.put_env(:arc, :bucket, {:system, "ARC_TEST_BUCKET"})
-  #   assert {:ok, @img_name} == DummyDefinition.store({@img_path, name})
-  #   assert_public(DummyDefinition, {@img_name, name})
-  #   delete_and_assert_not_found(DummyDefinition, {@img_name, name})
-  #   Application.put_env(:arc, :bucket, System.get_env("ARC_TEST_BUCKET"))
-  # end
+  @tag timeout: 15000
+  test "public put and get with System env", %{name: name} do
+    Application.put_env(:arc, :bucket, {:system, "ARC_TEST_BUCKET"})
+    assert {:ok, @img_name} == DummyDefinition.store({@img_path, name})
+    assert_public(DummyDefinition, {@img_name, name})
+    delete_and_assert_not_found(DummyDefinition, {@img_name, name})
+    Application.put_env(:arc, :bucket, System.get_env("ARC_TEST_BUCKET"))
+  end
 
   @tag timeout: 15000
   test "private put" do
@@ -148,11 +152,11 @@ defmodule ArcTest.Storage.GCS do
   @tag timeout: 150000
   test "delete with scope" do
     scope = %{id: 1}
-    {:ok, path} = DefinitionWithScope.store({@img_path, scope})
-    assert DefinitionWithScope.url({path, scope}, signed: true) =~
-      "storage.googleapis.com/#{env_bucket()}/uploads/with_scopes/1/image%20space.png"
-    assert_public(DefinitionWithScope, {path, scope})
-    delete_and_assert_not_found(DefinitionWithScope, {path, scope})
+    {:ok, @img_name} = DefinitionWithScope.store({@img_path, scope})
+    assert DefinitionWithScope.url({@img_name, scope}, signed: true) =~
+      "storage.googleapis.com/#{env_bucket()}/arc%20test/with-scopes/1/image.png"
+    assert_public(DefinitionWithScope, {@img_name, scope})
+    delete_and_assert_not_found(DefinitionWithScope, {@img_name, scope})
   end
 
   @tag timeout: 150000
