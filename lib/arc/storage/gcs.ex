@@ -60,7 +60,7 @@ defmodule Arc.Storage.GCS do
     url = build_url(path)
     headers = gcs_options ++ default_headers()
 
-    case HTTPoison.put!(url, body, headers) do
+    case HTTPoison.put!(url, body, headers, hackney_opts()) do
       %{status_code: 200} ->
         {:ok, file_name}
       %{body: body} ->
@@ -107,6 +107,10 @@ defmodule Arc.Storage.GCS do
       UndefinedFunctionError ->
         []
     end
+  end
+
+  defp hackney_opts() do
+    Application.get_env(:arc_gcs, :hackney_opts, [])
   end
 
   defp default_headers do
