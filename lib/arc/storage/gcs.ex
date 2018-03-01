@@ -86,6 +86,14 @@ defmodule Arc.Storage.GCS do
       name -> name
     end
   end
+  
+  defp endpoint do
+    case Application.fetch_env(:arc, :asset_host) do
+      :error -> @endpoint
+      {:ok, {:system, env_var}} when is_binary(env_var) -> System.get_env(env_var)
+      {:ok, endpoint} -> endpoint
+    end
+  end
 
   defp gcs_key(definition, version, file_and_scope) do
     definition
@@ -118,7 +126,7 @@ defmodule Arc.Storage.GCS do
   end
 
   defp build_url(path) do
-    "https://#{@endpoint}/#{bucket()}/#{path}"
+    "https://#{endpoint()}/#{bucket()}/#{path}"
   end
 
   defp ensure_keyword_list(list) when is_list(list), do: list
