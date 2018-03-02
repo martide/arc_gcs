@@ -81,9 +81,10 @@ defmodule Arc.Storage.GCS do
   end
 
   defp bucket do
-    case Application.fetch_env!(:arc, :bucket) do
-      {:system, env_var} when is_binary(env_var) -> System.get_env(env_var)
-      name -> name
+    case Application.fetch_env(:arc, :bucket) do
+      :error -> nil
+      {:ok, {:system, env_var}} when is_binary(env_var) -> System.get_env(env_var)
+      {:ok, name} -> name
     end
   end
   
@@ -126,7 +127,10 @@ defmodule Arc.Storage.GCS do
   end
 
   defp build_url(path) do
-    "https://#{endpoint()}/#{bucket()}/#{path}"
+    case bucket() do
+      nil -> "https://#{endpoint()}/#{path}"
+      value ->  "https://#{endpoint()}/#{bucket()}/#{path}"
+    end
   end
 
   defp ensure_keyword_list(list) when is_list(list), do: list
