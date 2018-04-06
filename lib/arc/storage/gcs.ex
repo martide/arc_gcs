@@ -31,10 +31,9 @@ defmodule Arc.Storage.GCS do
     
     path = case bucket() do
       nil ->     "/#{endpoint}"
-      bucket ->  "/#{bucket}/#{endpoint}"
+      value ->  "/#{value}/#{endpoint}"
     end
     
-
     base_url = build_url(endpoint)
     signature_string = url_to_sign("GET", "", "", expiration, "", path)
     url_encoded_signature = base64_sign_url(signature_string)
@@ -135,7 +134,7 @@ defmodule Arc.Storage.GCS do
   defp build_url(path) do
     case bucket() do
       nil -> "https://#{endpoint()}/#{path}"
-      value ->  "https://#{endpoint()}/#{bucket()}/#{path}"
+      value ->  "https://#{endpoint()}/#{value}/#{path}"
     end
   end
 
