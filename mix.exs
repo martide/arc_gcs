@@ -4,14 +4,21 @@ defmodule Arc.Storage.GCS.Mixfile do
   @version "0.0.5"
 
   def project do
-    [app: :arc_gcs,
-     version: @version,
-     elixir: "~> 1.4",
-     deps: deps(),
-     description: description(),
-     package: package(),
-     test_coverage: [tool: ExCoveralls],
-     preferred_cli_env: ["coveralls": :test, "coveralls.detail": :test, "coveralls.post": :test, "coveralls.html": :test]]
+    [
+      app: :arc_gcs,
+      version: @version,
+      elixir: "~> 1.4",
+      deps: deps(),
+      description: description(),
+      package: package(),
+      test_coverage: [tool: ExCoveralls],
+      preferred_cli_env: [
+        coveralls: :test,
+        "coveralls.detail": :test,
+        "coveralls.post": :test,
+        "coveralls.html": :test
+      ]
+    ]
   end
 
   defp description do
@@ -21,10 +28,12 @@ defmodule Arc.Storage.GCS.Mixfile do
   end
 
   defp package do
-    [maintainers: ["Martide"],
-     licenses: ["Apache 2.0"],
-     links: %{"GitHub" => "https://github.com/martide/arc_gcs"},
-     files: ~w(mix.exs README.md lib)]
+    [
+      maintainers: ["Martide"],
+      licenses: ["Apache 2.0"],
+      links: %{"GitHub" => "https://github.com/martide/arc_gcs"},
+      files: ~w(mix.exs README.md lib)
+    ]
   end
 
   defp deps do
