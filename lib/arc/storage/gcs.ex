@@ -28,7 +28,12 @@ defmodule Arc.Storage.GCS do
   defp build_signed_url(endpoint) do
     {:ok, client_id} = Goth.Config.get("client_email")
     expiration = System.os_time(:seconds) + 86_400
-    path = "/#{bucket()}/#{endpoint}"
+    
+    path = case bucket() do
+      nil ->     "/#{endpoint}"
+      value ->  "/#{value}/#{endpoint}"
+    end
+    
     base_url = build_url(endpoint)
     signature_string = url_to_sign("GET", "", "", expiration, "", path)
     url_encoded_signature = base64_sign_url(signature_string)
@@ -81,9 +86,18 @@ defmodule Arc.Storage.GCS do
   end
 
   defp bucket do
-    case Application.fetch_env!(:arc, :bucket) do
-      {:system, env_var} when is_binary(env_var) -> System.get_env(env_var)
-      name -> name
+    case Application.fetch_env(:arc, :bucket) do
+      :error -> nil
+      {:ok, {:system, env_var}} when is_binary(env_var) -> System.get_env(env_var)
+      {:ok, name} -> name
+    end
+  end
+  
+  defp endpoint do
+    case Application.fetch_env(:arc, :asset_host) do
+      :error -> @endpoint
+      {:ok, {:system, env_var}} when is_binary(env_var) -> System.get_env(env_var)
+      {:ok, endpoint} -> endpoint
     end
   end
 
@@ -118,7 +132,10 @@ defmodule Arc.Storage.GCS do
   end
 
   defp build_url(path) do
-    "https://#{@endpoint}/#{bucket()}/#{path}"
+    case bucket() do
+      nil -> "https://#{endpoint()}/#{path}"
+      value ->  "https://#{endpoint()}/#{value}/#{path}"
+    end
   end
 
   defp ensure_keyword_list(list) when is_list(list), do: list
