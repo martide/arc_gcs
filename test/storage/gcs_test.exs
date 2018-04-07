@@ -173,4 +173,50 @@ defmodule ArcTest.Storage.GCS do
     assert_public_with_extension(DefinitionWithThumbnail, {@img_name, name}, :thumb, ".jpg")
     delete_and_assert_not_found(DefinitionWithThumbnail, {@img_name, name})
   end
+
+  describe "url" do
+    test "config bucket with string", %{name: name} do
+      Application.put_env(:arc, :bucket, "test-bucket-str")
+      assert DummyDefinition.url({@img_name, name}, signed: false) ==
+        "https://storage.googleapis.com/test-bucket-str/arc%20test/#{name}.png"
+      assert DummyDefinition.url({@img_name, name}, signed: true) |> String.starts_with?("https://storage.googleapis.com/test-bucket-str/arc%20test/#{name}.png")
+      Application.put_env(:arc, :bucket, env_bucket())
+    end
+
+    test "config bucket with ENV", %{name: name} do
+      System.put_env("TEST_BUCKET", "test-bucket-env")
+      Application.put_env(:arc, :bucket, {:system, "TEST_BUCKET"})
+      assert DummyDefinition.url({@img_name, name}, signed: false) ==
+        "https://storage.googleapis.com/test-bucket-env/arc%20test/#{name}.png"
+      assert DummyDefinition.url({@img_name, name}, signed: true) |> String.starts_with?("https://storage.googleapis.com/test-bucket-env/arc%20test/#{name}.png")
+      Application.put_env(:arc, :bucket, env_bucket())
+      System.delete_env("TEST_BUCKET")
+    end
+
+    test "without bucket", %{name: name} do
+      Application.delete_env(:arc, :bucket)
+      assert DummyDefinition.url({@img_name, name}, signed: false) ==
+        "https://storage.googleapis.com/arc%20test/#{name}.png"
+      assert DummyDefinition.url({@img_name, name}, signed: true) |> String.starts_with?("https://storage.googleapis.com/arc%20test/#{name}.png")
+      Application.put_env(:arc, :bucket, env_bucket())
+    end
+  end
+
+  describe "endpoint" do
+    test "config asset_host with string", %{name: name} do
+      Application.put_env(:arc, :asset_host, "test-asset-host.str")
+      assert DummyDefinition.url({@img_name, name}, signed: false) ==
+        "https://test-asset-host.str/#{env_bucket()}/arc%20test/#{name}.png"
+      Application.delete_env(:arc, :asset_host)
+    end
+
+    test "config asset_host with ENV", %{name: name} do
+      System.put_env("ASSET_HOST", "test-asset-host.env")
+      Application.put_env(:arc, :asset_host, {:system, "ASSET_HOST"})
+      assert DummyDefinition.url({@img_name, name}, signed: false) ==
+        "https://test-asset-host.env/#{env_bucket()}/arc%20test/#{name}.png"
+      Application.delete_env(:arc, :asset_host)
+      System.delete_env("ASSET_HOST")
+    end
+  end
 end

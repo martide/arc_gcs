@@ -28,12 +28,12 @@ defmodule Arc.Storage.GCS do
   defp build_signed_url(endpoint) do
     {:ok, client_id} = Goth.Config.get("client_email")
     expiration = System.os_time(:seconds) + 86_400
-    
+
     path = case bucket() do
       nil ->     "/#{endpoint}"
       value ->  "/#{value}/#{endpoint}"
     end
-    
+
     base_url = build_url(endpoint)
     signature_string = url_to_sign("GET", "", "", expiration, "", path)
     url_encoded_signature = base64_sign_url(signature_string)
@@ -92,7 +92,7 @@ defmodule Arc.Storage.GCS do
       {:ok, name} -> name
     end
   end
-  
+
   defp endpoint do
     case Application.fetch_env(:arc, :asset_host) do
       :error -> @endpoint
