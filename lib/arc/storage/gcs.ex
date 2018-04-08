@@ -5,9 +5,10 @@ defmodule Arc.Storage.GCS do
   @endpoint "storage.googleapis.com"
   @full_control_scope "https://www.googleapis.com/auth/devstorage.full_control"
 
-  def put(definition, version, {file, _scope} =file_and_scope) do
+  def put(definition, version, {file, _scope} = file_and_scope) do
     path = gcs_key(definition, version, file_and_scope)
     acl = definition.acl(version, file_and_scope)
+
     gcs_options =
       get_gcs_options(definition, version, file_and_scope)
       |> ensure_keyword_list
@@ -19,6 +20,7 @@ defmodule Arc.Storage.GCS do
 
   def url(definition, version, file_and_scope, options) do
     key = gcs_key(definition, version, file_and_scope)
+
     case Keyword.get(options, :signed, false) do
       true -> build_signed_url(key)
       false -> build_url(key)
@@ -28,16 +30,20 @@ defmodule Arc.Storage.GCS do
   defp build_signed_url(endpoint) do
     {:ok, client_id} = Goth.Config.get("client_email")
     expiration = System.os_time(:seconds) + 86_400
-    
-    path = case bucket() do
-      nil ->     "/#{endpoint}"
-      value ->  "/#{value}/#{endpoint}"
-    end
-    
+
+    path =
+      case bucket() do
+        nil -> "/#{endpoint}"
+        value -> "/#{value}/#{endpoint}"
+      end
+
     base_url = build_url(endpoint)
     signature_string = url_to_sign("GET", "", "", expiration, "", path)
     url_encoded_signature = base64_sign_url(signature_string)
-    "#{base_url}?GoogleAccessId=#{client_id}&Expires=#{expiration}&Signature=#{url_encoded_signature}"
+
+    "#{base_url}?GoogleAccessId=#{client_id}&Expires=#{expiration}&Signature=#{
+      url_encoded_signature
+    }"
   end
 
   def delete(definition, version, file_and_scope) do
@@ -56,8 +62,7 @@ defmodule Arc.Storage.GCS do
   end
 
   defp do_put(%{binary: binary} = file, path, gcs_options)
-    when is_binary(binary)
-  do
+       when is_binary(binary) do
     do_put(path, binary, gcs_options, file.file_name)
   end
 
@@ -68,6 +73,7 @@ defmodule Arc.Storage.GCS do
     case HTTPoison.put!(url, body, headers, hackney_opts()) do
       %{status_code: 200} ->
         {:ok, file_name}
+
       %{body: body} ->
         error = xpath(body, ~x"//Details/text()"S)
         {:error, error}
@@ -92,7 +98,7 @@ defmodule Arc.Storage.GCS do
       {:ok, name} -> name
     end
   end
-  
+
   defp endpoint do
     case Application.fetch_env(:arc, :asset_host) do
       :error -> @endpoint
@@ -104,7 +110,7 @@ defmodule Arc.Storage.GCS do
   defp gcs_key(definition, version, file_and_scope) do
     definition
     |> do_gcs_key(version, file_and_scope)
-    |> URI.encode
+    |> URI.encode()
   end
 
   defp do_gcs_key(definition, version, file_and_scope) do
@@ -134,13 +140,12 @@ defmodule Arc.Storage.GCS do
   defp build_url(path) do
     case bucket() do
       nil -> "https://#{endpoint()}/#{path}"
-      value ->  "https://#{endpoint()}/#{value}/#{path}"
+      value -> "https://#{endpoint()}/#{value}/#{path}"
     end
   end
 
   defp ensure_keyword_list(list) when is_list(list), do: list
   defp ensure_keyword_list(map) when is_map(map), do: Map.to_list(map)
-
 
   defp url_to_sign(verb, md5, type, expiration, headers, resource) do
     "#{verb}\n#{md5}\n#{type}\n#{expiration}\n#{headers}#{resource}"
@@ -150,11 +155,11 @@ defmodule Arc.Storage.GCS do
     {:ok, pem_bin} = Goth.Config.get("private_key")
     [pem_key_data] = :public_key.pem_decode(pem_bin)
     pem_key = :public_key.pem_entry_decode(pem_key_data)
-    rsa_key = :public_key.der_decode(:'RSAPrivateKey', elem(pem_key, 3))
+    rsa_key = :public_key.der_decode(:RSAPrivateKey, elem(pem_key, 3))
 
     plaintext
     |> :public_key.sign(:sha256, rsa_key)
-    |> Base.encode64
-    |> URI.encode_www_form
+    |> Base.encode64()
+    |> URI.encode_www_form()
   end
 end
