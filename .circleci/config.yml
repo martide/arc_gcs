@@ -1,0 +1,29 @@
+version: 2.0
+
+jobs:
+  "elixir-1.6":
+    docker:
+      - image: circleci/elixir:1.6
+    working_directory: ~/circleci-demo-workflows
+    steps:
+      - checkout
+      - run: mix format --dry-run --check-formatted
+      - run: mix credo --strict
+      - run: mix test
+
+  "elixir-1.5":
+    docker:
+      - image: circleci/elixir:1.5
+    working_directory: ~/circleci-demo-workflows
+    steps:
+      - checkout
+      - run: mix format --dry-run --check-formatted
+      - run: mix credo --strict
+      - run: mix test
+
+workflows:
+  version: 2
+  build:
+    jobs:
+      - "elixir-1.6"
+      - "elixir-1.5"
