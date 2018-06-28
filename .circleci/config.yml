@@ -4,7 +4,7 @@ jobs:
   "elixir-1.6":
     docker:
       - image: circleci/elixir:1.6
-      environment:
+        environment:
           MIX_ENV: test
     steps:
       - checkout
@@ -18,7 +18,7 @@ jobs:
   "elixir-1.5":
     docker:
       - image: circleci/elixir:1.5
-      environment:
+        environment:
           MIX_ENV: test
     steps:
       - checkout
