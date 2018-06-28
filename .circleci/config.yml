@@ -8,12 +8,17 @@ jobs:
           MIX_ENV: test
     steps:
       - checkout
+
       - run: mix local.hex --force
       - run: mix local.rebar --force
       - run: mix do deps.get, compile
       - run: mix format --dry-run --check-formatted
       # - run: mix credo --strict
-      - run: mix test
+      - run: mix coveralls.json
+      - run: bash <(curl -s https://codecov.io/bash)
+
+      - store_test_results:
+          path: cover
 
   "elixir-1.5":
     docker:
@@ -22,11 +27,16 @@ jobs:
           MIX_ENV: test
     steps:
       - checkout
+
       - run: mix local.hex --force
       - run: mix local.rebar --force
       - run: mix do deps.get, compile
       # - run: mix credo --strict
-      - run: mix test
+      - run: mix coveralls.json
+      - run: bash <(curl -s https://codecov.io/bash)
+
+      - store_test_results:
+          path: cover
 
 workflows:
   version: 2
