@@ -10,8 +10,8 @@ jobs:
       - checkout
       - run: mix local.hex --force
       - run: mix local.rebar --force
-      - run: mix format --dry-run --check-formatted
       - run: mix do deps.get, compile
+      - run: mix format --dry-run --check-formatted
       - run: mix credo --strict
       - run: mix test
 
@@ -24,7 +24,6 @@ jobs:
       - checkout
       - run: mix local.hex --force
       - run: mix local.rebar --force
-      - run: mix format --dry-run --check-formatted
       - run: mix do deps.get, compile
       - run: mix credo --strict
       - run: mix test
