@@ -155,10 +155,12 @@ defmodule Arc.Storage.GCS do
     {:ok, pem_bin} = Goth.Config.get("private_key")
     [pem_key_data] = :public_key.pem_decode(pem_bin)
     otp_release = System.otp_release() |> String.to_integer()
+
     rsa_key =
       case otp_release do
         n when n >= 21 ->
           :public_key.pem_entry_decode(pem_key_data)
+
         n when n <= 20 ->
           pem_key = :public_key.pem_entry_decode(pem_key_data)
           :public_key.der_decode(:RSAPrivateKey, elem(pem_key, 3))
