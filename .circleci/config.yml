@@ -4,18 +4,28 @@ jobs:
   "elixir-1.6":
     docker:
       - image: circleci/elixir:1.6
+      environment:
+          MIX_ENV: test
     steps:
       - checkout
+      - run: mix local.hex --force
+      - run: mix local.rebar --force
       - run: mix format --dry-run --check-formatted
+      - run: mix do deps.get, compile
       - run: mix credo --strict
       - run: mix test
 
   "elixir-1.5":
     docker:
       - image: circleci/elixir:1.5
+      environment:
+          MIX_ENV: test
     steps:
       - checkout
+      - run: mix local.hex --force
+      - run: mix local.rebar --force
       - run: mix format --dry-run --check-formatted
+      - run: mix do deps.get, compile
       - run: mix credo --strict
       - run: mix test
 
