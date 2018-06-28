@@ -4,7 +4,6 @@ jobs:
   "elixir-1.6":
     docker:
       - image: circleci/elixir:1.6
-    working_directory: ~/circleci-demo-workflows
     steps:
       - checkout
       - run: mix format --dry-run --check-formatted
@@ -14,7 +13,6 @@ jobs:
   "elixir-1.5":
     docker:
       - image: circleci/elixir:1.5
-    working_directory: ~/circleci-demo-workflows
     steps:
       - checkout
       - run: mix format --dry-run --check-formatted
