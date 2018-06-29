@@ -1,6 +1,6 @@
 # Arc Google Cloud Storage
 
-[![Build Status](https://semaphoreci.com/api/v1/martide/arc_gcs/branches/master/badge.svg)](https://semaphoreci.com/martide/arc_gcs)
+[![CircleCI](https://circleci.com/gh/martide/arc_gcs.svg?style=svg)](https://circleci.com/gh/martide/arc_gcs)
 [![codecov](https://codecov.io/gh/martide/arc_gcs/branch/master/graph/badge.svg)](https://codecov.io/gh/martide/arc_gcs)
 
 Arc GCS Provides an [`Arc`](https://github.com/stavro/arc) storage back-end for [`Google Cloud Storage`](https://cloud.google.com/storage/).
