@@ -32,7 +32,7 @@ defmodule Arc.Storage.GCS do
     expiration = System.os_time(:seconds) + 86_400
 
     path =
-      case definition.bucket() do
+      case get_bucket_name(definition) do
         nil -> "/#{endpoint}"
         value -> "/#{value}/#{endpoint}"
       end
@@ -128,9 +128,16 @@ defmodule Arc.Storage.GCS do
   end
 
   defp build_url(definition, path) do
-    case definition.bucket() do
+    case get_bucket_name(definition) do
       nil -> "https://#{endpoint()}/#{path}"
       value -> "https://#{endpoint()}/#{value}/#{path}"
+    end
+  end
+
+  defp get_bucket_name(definition) do
+    case definition.bucket() do
+      {:system, env_var} when is_binary(env_var) -> System.get_env(env_var)
+      name -> name
     end
   end
 
