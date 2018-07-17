@@ -19,6 +19,7 @@ end
 
 Then run `mix deps.get` in your shell to fetch the dependencies.
 
+
 ### Configuration
 
 ```elixir
@@ -30,11 +31,23 @@ config :goth,
   json: "/path/to/json" |> Path.expand |> File.read!
 ```
 
-### Note
+
+### Tests
+
+To run the tests you need to set the following
+
+-   `ARC_TEST_BUCKET` - e.g `gcs-bucket-name`
+-   `GOOGLE_CREDENTIAL` - your JSON credential from Google
+-   Finally `mix test`
+
+
+### Notes
+
 Basic functionality from [`Arc`](https://github.com/stavro/arc) including
-1. store with acl
-2. delete
-3. generate url and signed url
+1. Store with ACL
+2. Delete
+3. Generate URL and sign URL
+
 
 ## License
 
