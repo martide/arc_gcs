@@ -6,7 +6,12 @@ defmodule Arc.Storage.GCS do
   @full_control_scope "https://www.googleapis.com/auth/devstorage.full_control"
 
   def put(definition, version, {file, _scope} = file_and_scope) do
-    path = gcs_key(definition, version, file_and_scope)
+    # Path must be calculated within put function as file.file_name has
+    # already been modified by arc/arc-ecto to reflect
+    # the definition's filename function
+    destination_dir = definition.storage_dir(version, file_and_scope)
+    path = Path.join(destination_dir, file.file_name)
+
     acl = definition.acl(version, file_and_scope)
 
     gcs_options =

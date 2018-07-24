@@ -10,7 +10,7 @@ defmodule ArcTest.Storage.GCS do
     def __storage, do: Arc.Storage.GCS
 
     @acl :public_read
-    def storage_dir(_, _), do: "arc test"
+    def storage_dir(_, _), do: "arc-test"
 
     def filename(_, {file, name}) do
       name || file.file_name
@@ -48,7 +48,32 @@ defmodule ArcTest.Storage.GCS do
     def __storage, do: Arc.Storage.GCS
 
     @acl :public_read
-    def storage_dir(_, {_, scope}), do: "arc test/with-scopes/#{scope.id}"
+    def storage_dir(_, {_, scope}), do: "arc-test/with-scopes/#{scope.id}"
+
+    def gcs_object_headers(_, _), do: ["cache-control": "no-store"]
+  end
+
+  defmodule DefinitionWithScopeFilename do
+    use Arc.Definition
+
+    @acl "public-read"
+    @versions [:original, :list]
+
+    def __storage, do: Arc.Storage.GCS
+
+    def transform(:list, _) do
+      resize_to_limit("80x80")
+    end
+
+    def resize_to_limit(size_str) do
+      {:convert, "-strip -thumbnail #{size_str}\> -format jpg", :jpg}
+    end
+
+    def storage_dir(_, {_, scope}), do: "arc-test/with-scopes/#{scope.id}"
+    def filename(version, {file, scope}) do
+      name = Path.basename(file.file_name, Path.extname(file.file_name))
+      "#{scope.id}_#{version}_#{name}"
+    end
 
     def gcs_object_headers(_, _), do: ["cache-control": "no-store"]
   end
@@ -169,7 +194,7 @@ defmodule ArcTest.Storage.GCS do
     {:ok, @img_name} = DefinitionWithScope.store({@img_path, scope})
 
     assert DefinitionWithScope.url({@img_name, scope}, signed: true) =~
-             "storage.googleapis.com/#{env_bucket()}/arc%20test/with-scopes/1/image.png"
+             "storage.googleapis.com/#{env_bucket()}/arc-test/with-scopes/1/image.png"
 
     assert_public(DefinitionWithScope, {@img_name, scope})
     delete_and_assert_not_found(DefinitionWithScope, {@img_name, scope})
@@ -190,16 +215,30 @@ defmodule ArcTest.Storage.GCS do
     delete_and_assert_not_found(DefinitionWithThumbnail, {@img_name, name})
   end
 
+  @tag timeout: 150_000
+  test "put correct filename with scope" do
+    scope = %{id: 1}
+    {:ok, @img_name} = DefinitionWithScopeFilename.store({@img_path, scope})
+
+    urls = DefinitionWithScopeFilename.urls({@img_name, scope}, signed: false)
+
+    assert urls.original =~ "storage.googleapis.com/#{env_bucket()}/arc-test/with-scopes/1/1_original_image.png"
+    assert urls.list =~ "storage.googleapis.com/#{env_bucket()}/arc-test/with-scopes/1/1_list_image.jpg"
+
+    assert_public(DefinitionWithScopeFilename, {@img_name, scope})
+    delete_and_assert_not_found(DefinitionWithScopeFilename, {@img_name, scope})
+  end
+
   describe "url" do
     test "config bucket with string", %{name: name} do
       Application.put_env(:arc, :bucket, "test-bucket-str")
 
       assert DummyDefinition.url({@img_name, name}, signed: false) ==
-               "https://storage.googleapis.com/test-bucket-str/arc%20test/#{name}.png"
+               "https://storage.googleapis.com/test-bucket-str/arc-test/#{name}.png"
 
       assert DummyDefinition.url({@img_name, name}, signed: true)
              |> String.starts_with?(
-               "https://storage.googleapis.com/test-bucket-str/arc%20test/#{name}.png"
+               "https://storage.googleapis.com/test-bucket-str/arc-test/#{name}.png"
              )
 
       Application.put_env(:arc, :bucket, env_bucket())
@@ -210,11 +249,11 @@ defmodule ArcTest.Storage.GCS do
       Application.put_env(:arc, :bucket, {:system, "TEST_BUCKET"})
 
       assert DummyDefinition.url({@img_name, name}, signed: false) ==
-               "https://storage.googleapis.com/test-bucket-env/arc%20test/#{name}.png"
+               "https://storage.googleapis.com/test-bucket-env/arc-test/#{name}.png"
 
       assert DummyDefinition.url({@img_name, name}, signed: true)
              |> String.starts_with?(
-               "https://storage.googleapis.com/test-bucket-env/arc%20test/#{name}.png"
+               "https://storage.googleapis.com/test-bucket-env/arc-test/#{name}.png"
              )
 
       Application.put_env(:arc, :bucket, env_bucket())
@@ -225,10 +264,10 @@ defmodule ArcTest.Storage.GCS do
       Application.delete_env(:arc, :bucket)
 
       assert DummyDefinition.url({@img_name, name}, signed: false) ==
-               "https://storage.googleapis.com/arc%20test/#{name}.png"
+               "https://storage.googleapis.com/arc-test/#{name}.png"
 
       assert DummyDefinition.url({@img_name, name}, signed: true)
-             |> String.starts_with?("https://storage.googleapis.com/arc%20test/#{name}.png")
+             |> String.starts_with?("https://storage.googleapis.com/arc-test/#{name}.png")
 
       Application.put_env(:arc, :bucket, env_bucket())
     end
@@ -239,7 +278,7 @@ defmodule ArcTest.Storage.GCS do
       Application.put_env(:arc, :asset_host, "test-asset-host.str")
 
       assert DummyDefinition.url({@img_name, name}, signed: false) ==
-               "https://test-asset-host.str/#{env_bucket()}/arc%20test/#{name}.png"
+               "https://test-asset-host.str/#{env_bucket()}/arc-test/#{name}.png"
 
       Application.delete_env(:arc, :asset_host)
     end
@@ -249,7 +288,7 @@ defmodule ArcTest.Storage.GCS do
       Application.put_env(:arc, :asset_host, {:system, "ASSET_HOST"})
 
       assert DummyDefinition.url({@img_name, name}, signed: false) ==
-               "https://test-asset-host.env/#{env_bucket()}/arc%20test/#{name}.png"
+               "https://test-asset-host.env/#{env_bucket()}/arc-test/#{name}.png"
 
       Application.delete_env(:arc, :asset_host)
       System.delete_env("ASSET_HOST")
