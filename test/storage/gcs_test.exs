@@ -70,6 +70,7 @@ defmodule ArcTest.Storage.GCS do
     end
 
     def storage_dir(_, {_, scope}), do: "arc-test/with-scopes/#{scope.id}"
+
     def filename(version, {file, scope}) do
       name = Path.basename(file.file_name, Path.extname(file.file_name))
       "#{scope.id}_#{version}_#{name}"
@@ -222,8 +223,11 @@ defmodule ArcTest.Storage.GCS do
 
     urls = DefinitionWithScopeFilename.urls({@img_name, scope}, signed: false)
 
-    assert urls.original =~ "storage.googleapis.com/#{env_bucket()}/arc-test/with-scopes/1/1_original_image.png"
-    assert urls.list =~ "storage.googleapis.com/#{env_bucket()}/arc-test/with-scopes/1/1_list_image.jpg"
+    assert urls.original =~
+             "storage.googleapis.com/#{env_bucket()}/arc-test/with-scopes/1/1_original_image.png"
+
+    assert urls.list =~
+             "storage.googleapis.com/#{env_bucket()}/arc-test/with-scopes/1/1_list_image.jpg"
 
     assert_public(DefinitionWithScopeFilename, {@img_name, scope})
     delete_and_assert_not_found(DefinitionWithScopeFilename, {@img_name, scope})
