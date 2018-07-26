@@ -20,29 +20,29 @@ defmodule Arc.Storage.GCS do
       |> Keyword.put(:x_goog_acl, acl)
       |> transform_headers
 
-    do_put(file, path, gcs_options)
+    do_put(definition, file, path, gcs_options)
   end
 
   def url(definition, version, file_and_scope, options) do
     key = gcs_key(definition, version, file_and_scope)
 
     case Keyword.get(options, :signed, false) do
-      true -> build_signed_url(key)
-      false -> build_url(key)
+      true -> build_signed_url(definition, key)
+      false -> build_url(definition, key)
     end
   end
 
-  defp build_signed_url(endpoint) do
+  defp build_signed_url(definition, endpoint) do
     {:ok, client_id} = Goth.Config.get("client_email")
     expiration = System.os_time(:seconds) + 86_400
 
     path =
-      case bucket() do
+      case get_bucket_name(definition) do
         nil -> "/#{endpoint}"
         value -> "/#{value}/#{endpoint}"
       end
 
-    base_url = build_url(endpoint)
+    base_url = build_url(definition, endpoint)
     signature_string = url_to_sign("GET", "", "", expiration, "", path)
     url_encoded_signature = base64_sign_url(signature_string)
 
@@ -52,9 +52,7 @@ defmodule Arc.Storage.GCS do
   end
 
   def delete(definition, version, file_and_scope) do
-    url =
-      gcs_key(definition, version, file_and_scope)
-      |> build_url
+    url = build_url(definition, gcs_key(definition, version, file_and_scope))
 
     case HTTPoison.delete!(url, default_headers()) do
       %{status_code: 204} -> :ok
@@ -62,17 +60,17 @@ defmodule Arc.Storage.GCS do
     end
   end
 
-  defp do_put(%{binary: nil} = file, path, gcs_options) do
-    do_put(path, {:file, file.path}, gcs_options, file.file_name)
+  defp do_put(definition, %{binary: nil} = file, path, gcs_options) do
+    do_put(definition, path, {:file, file.path}, gcs_options, file.file_name)
   end
 
-  defp do_put(%{binary: binary} = file, path, gcs_options)
+  defp do_put(definition, %{binary: binary} = file, path, gcs_options)
        when is_binary(binary) do
-    do_put(path, binary, gcs_options, file.file_name)
+    do_put(definition, path, binary, gcs_options, file.file_name)
   end
 
-  defp do_put(path, body, gcs_options, file_name) do
-    url = build_url(path)
+  defp do_put(definition, path, body, gcs_options, file_name) do
+    url = build_url(definition, path)
     headers = gcs_options ++ default_headers()
 
     case HTTPoison.put!(url, body, headers, hackney_opts()) do
@@ -94,14 +92,6 @@ defmodule Arc.Storage.GCS do
   defp get_token do
     {:ok, %{token: token}} = Token.for_scope(@full_control_scope)
     token
-  end
-
-  defp bucket do
-    case Application.fetch_env(:arc, :bucket) do
-      :error -> nil
-      {:ok, {:system, env_var}} when is_binary(env_var) -> System.get_env(env_var)
-      {:ok, name} -> name
-    end
   end
 
   defp endpoint do
@@ -142,10 +132,17 @@ defmodule Arc.Storage.GCS do
     [{"Authorization", "Bearer #{get_token()}"}]
   end
 
-  defp build_url(path) do
-    case bucket() do
+  defp build_url(definition, path) do
+    case get_bucket_name(definition) do
       nil -> "https://#{endpoint()}/#{path}"
       value -> "https://#{endpoint()}/#{value}/#{path}"
+    end
+  end
+
+  defp get_bucket_name(definition) do
+    case definition.bucket() do
+      {:system, env_var} when is_binary(env_var) -> System.get_env(env_var)
+      name -> name
     end
   end
 
