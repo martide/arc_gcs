@@ -2,6 +2,7 @@ defmodule Arc.Storage.GCS do
   alias Goth.Token
   import SweetXml
 
+  @default_expiry_time 60 * 5
   @endpoint "storage.googleapis.com"
   @full_control_scope "https://www.googleapis.com/auth/devstorage.full_control"
 
@@ -27,14 +28,16 @@ defmodule Arc.Storage.GCS do
     key = gcs_key(definition, version, file_and_scope)
 
     case Keyword.get(options, :signed, false) do
-      true -> build_signed_url(key)
+      true -> build_signed_url(key, options)
       false -> build_url(key)
     end
   end
 
-  defp build_signed_url(endpoint) do
+  defp build_signed_url(endpoint, options) do
     {:ok, client_id} = Goth.Config.get("client_email")
-    expiration = System.os_time(:seconds) + 86_400
+
+    expiration =
+      System.os_time(:seconds) + Keyword.get(options, :expires_in, @default_expiry_time)
 
     path =
       case bucket() do
