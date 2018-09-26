@@ -9,7 +9,7 @@ defmodule Arc.Storage.GCS do
     # Path must be calculated within put function as file.file_name has
     # already been modified by arc/arc-ecto to reflect
     # the definition's filename function
-    destination_dir = definition.storage_dir(version, file_and_scope)
+    destination_dir = get_storage_dir(definition, version, file_and_scope)
     path = Path.join(destination_dir, file.file_name)
 
     acl = definition.acl(version, file_and_scope)
@@ -60,6 +60,20 @@ defmodule Arc.Storage.GCS do
       %{status_code: 204} -> :ok
       _ -> :error
     end
+  end
+
+  defp get_storage_dir(definition, version, file_and_scope) do
+    version
+    |> definition.storage_dir(file_and_scope)
+    |> gcs_storage_dir()
+  end
+
+  defp gcs_storage_dir({:system, env_value}) when is_binary(env_value) do
+    System.get_env(env_value)
+  end
+
+  defp gcs_storage_dir(name) do
+    name
   end
 
   defp do_put(%{binary: nil} = file, path, gcs_options) do
@@ -120,7 +134,7 @@ defmodule Arc.Storage.GCS do
 
   defp do_gcs_key(definition, version, file_and_scope) do
     Path.join([
-      definition.storage_dir(version, file_and_scope),
+      get_storage_dir(definition, version, file_and_scope),
       Arc.Definition.Versioning.resolve_file_name(definition, version, file_and_scope)
     ])
   end
