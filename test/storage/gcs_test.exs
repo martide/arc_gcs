@@ -27,6 +27,28 @@ defmodule ArcTest.Storage.GCS do
     def gcs_object_headers(:original, _), do: ["cache-control": "no-store"]
   end
 
+  defmodule DummyDefinitionWithNoStorageDir do
+    use Arc.Definition
+
+    def __storage, do: Arc.Storage.GCS
+
+    @acl :public_read
+
+    def filename(_, {file, name}) do
+      name || file.file_name
+    end
+
+    def acl(_, {_, :private}), do: :private
+
+    def gcs_object_headers(:original, {_, :with_content_type}),
+      do: [content_type: "image/png", "cache-control": "no-store"]
+
+    def gcs_object_headers(:original, {_, :map}),
+      do: %{content_type: "image/png", "cache-control": "no-store"}
+
+    def gcs_object_headers(:original, _), do: ["cache-control": "no-store"]
+  end
+
   defmodule DefinitionWithThumbnail do
     use Arc.Definition
 
@@ -262,6 +284,27 @@ defmodule ArcTest.Storage.GCS do
 
       Application.put_env(:arc, :bucket, env_bucket())
       System.delete_env("TEST_BUCKET")
+    end
+
+    test "config storage_dir with ENV", %{name: name} do
+      System.put_env("TEST_BUCKET", "test-bucket-env")
+      System.put_env("TEST_STORAGE_DIR", "test-storage-dir-env")
+      Application.put_env(:arc, :bucket, {:system, "TEST_BUCKET"})
+      Application.put_env(:arc, :storage_dir, {:system, "TEST_STORAGE_DIR"})
+
+      assert DummyDefinitionWithNoStorageDir.url({@img_name, name}, signed: false) ==
+               "https://storage.googleapis.com/test-bucket-env/test-storage-dir-env/#{name}.png"
+
+      assert DummyDefinitionWithNoStorageDir.url({@img_name, name}, signed: true)
+             |> String.starts_with?(
+               "https://storage.googleapis.com/test-bucket-env/test-storage-dir-env/#{name}.png"
+             )
+
+      Application.put_env(:arc, :bucket, env_bucket())
+      Application.delete_env(:arc, :storage_dir)
+
+      System.delete_env("TEST_BUCKET")
+      System.delete_env("TEST_STORAGE_DIR")
     end
 
     test "without bucket", %{name: name} do
