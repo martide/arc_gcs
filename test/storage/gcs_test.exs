@@ -327,6 +327,13 @@ defmodule ArcTest.Storage.GCS do
 
       Application.put_env(:arc, :bucket, env_bucket())
     end
+
+    test "expires_in for signed url are set in URL", %{name: name} do
+      expiration = System.os_time(:seconds) + 10
+
+      assert DummyDefinition.url({@img_name, name}, signed: true, expires_in: 10)
+             |> String.contains?("Expires=#{expiration}")
+    end
   end
 
   describe "endpoint" do
