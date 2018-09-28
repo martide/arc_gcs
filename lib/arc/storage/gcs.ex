@@ -2,6 +2,7 @@ defmodule Arc.Storage.GCS do
   alias Goth.Token
   import SweetXml
 
+  @default_expiry_time 60 * 5
   @endpoint "storage.googleapis.com"
   @full_control_scope "https://www.googleapis.com/auth/devstorage.full_control"
 
@@ -9,7 +10,7 @@ defmodule Arc.Storage.GCS do
     # Path must be calculated within put function as file.file_name has
     # already been modified by arc/arc-ecto to reflect
     # the definition's filename function
-    destination_dir = definition.storage_dir(version, file_and_scope)
+    destination_dir = get_storage_dir(definition, version, file_and_scope)
     path = Path.join(destination_dir, file.file_name)
 
     acl = definition.acl(version, file_and_scope)
@@ -27,14 +28,16 @@ defmodule Arc.Storage.GCS do
     key = gcs_key(definition, version, file_and_scope)
 
     case Keyword.get(options, :signed, false) do
-      true -> build_signed_url(key)
+      true -> build_signed_url(key, options)
       false -> build_url(key)
     end
   end
 
-  defp build_signed_url(endpoint) do
+  defp build_signed_url(endpoint, options) do
     {:ok, client_id} = Goth.Config.get("client_email")
-    expiration = System.os_time(:seconds) + 86_400
+
+    expiration =
+      System.os_time(:seconds) + Keyword.get(options, :expires_in, @default_expiry_time)
 
     path =
       case bucket() do
@@ -60,6 +63,20 @@ defmodule Arc.Storage.GCS do
       %{status_code: 204} -> :ok
       _ -> :error
     end
+  end
+
+  defp get_storage_dir(definition, version, file_and_scope) do
+    version
+    |> definition.storage_dir(file_and_scope)
+    |> gcs_storage_dir()
+  end
+
+  defp gcs_storage_dir({:system, env_value}) when is_binary(env_value) do
+    System.get_env(env_value)
+  end
+
+  defp gcs_storage_dir(name) do
+    name
   end
 
   defp do_put(%{binary: nil} = file, path, gcs_options) do
@@ -120,7 +137,7 @@ defmodule Arc.Storage.GCS do
 
   defp do_gcs_key(definition, version, file_and_scope) do
     Path.join([
-      definition.storage_dir(version, file_and_scope),
+      get_storage_dir(definition, version, file_and_scope),
       Arc.Definition.Versioning.resolve_file_name(definition, version, file_and_scope)
     ])
   end
