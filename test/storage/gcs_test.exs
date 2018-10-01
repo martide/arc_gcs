@@ -1,3 +1,35 @@
+defmodule DefinitionTest do
+  defmacro __using__(_) do
+    quote do
+      use Arc.Definition
+
+      @acl :public_read
+
+      def __storage, do: Arc.Storage.GCS
+
+      def filename(_, {file, name}) do
+        name || file.file_name
+      end
+
+      def acl(_, {_, :private}), do: :private
+
+      def gcs_object_headers(:original, {_, :with_content_type}) do
+        [content_type: "image/png", "cache-control": "no-store"]
+      end
+
+      def gcs_object_headers(:original, {_, :map}) do
+        %{content_type: "image/png", "cache-control": "no-store"}
+      end
+
+      def gcs_object_headers(_, _) do
+        ["cache-control": "no-store"]
+      end
+
+      defoverridable filename: 2, acl: 2, gcs_object_headers: 2
+    end
+  end
+end
+
 defmodule ArcTest.Storage.GCS do
   use ExUnit.Case, async: true
 
@@ -5,83 +37,55 @@ defmodule ArcTest.Storage.GCS do
   @img_path "test/support/#{@img_name}"
 
   defmodule DummyDefinition do
-    use Arc.Definition
+    use DefinitionTest
 
-    def __storage, do: Arc.Storage.GCS
-
-    @acl :public_read
     def storage_dir(_, _), do: "arc-test"
-
-    def filename(_, {file, name}) do
-      name || file.file_name
-    end
-
-    def acl(_, {_, :private}), do: :private
-
-    def gcs_object_headers(:original, {_, :with_content_type}),
-      do: [content_type: "image/png", "cache-control": "no-store"]
-
-    def gcs_object_headers(:original, {_, :map}),
-      do: %{content_type: "image/png", "cache-control": "no-store"}
-
-    def gcs_object_headers(:original, _), do: ["cache-control": "no-store"]
   end
 
   defmodule DummyDefinitionWithNoStorageDir do
-    use Arc.Definition
+    use DefinitionTest
+  end
 
-    def __storage, do: Arc.Storage.GCS
+  defmodule DummyDefinitionWithBucketValue do
+    use DefinitionTest
 
-    @acl :public_read
+    def bucket, do: ArcTest.Storage.GCS.env_bucket()
+  end
 
-    def filename(_, {file, name}) do
-      name || file.file_name
-    end
+  defmodule DummyDefinitionWithBucketEnv do
+    use DefinitionTest
 
-    def acl(_, {_, :private}), do: :private
+    def bucket, do: {:system, "ARC_TEST_BUCKET"}
+  end
 
-    def gcs_object_headers(:original, {_, :with_content_type}),
-      do: [content_type: "image/png", "cache-control": "no-store"]
+  defmodule DummyDefinitionWithNilBucket do
+    use DefinitionTest
 
-    def gcs_object_headers(:original, {_, :map}),
-      do: %{content_type: "image/png", "cache-control": "no-store"}
-
-    def gcs_object_headers(:original, _), do: ["cache-control": "no-store"]
+    def bucket, do: nil
   end
 
   defmodule DefinitionWithThumbnail do
-    use Arc.Definition
-
-    def __storage, do: Arc.Storage.GCS
+    use DefinitionTest
 
     @versions [:thumb]
-    @acl :public_read
 
     def transform(:thumb, _) do
       {"convert", "-strip -thumbnail 100x100^ -gravity center -extent 100x100 -format jpg", :jpg}
     end
-
-    def gcs_object_headers(_, _), do: ["cache-control": "no-store"]
   end
 
   defmodule DefinitionWithScope do
-    use Arc.Definition
+    use DefinitionTest
 
-    def __storage, do: Arc.Storage.GCS
+    def filename(_, {file, _}), do: Path.basename(file.file_name, Path.extname(file.file_name))
 
-    @acl :public_read
     def storage_dir(_, {_, scope}), do: "arc-test/with-scopes/#{scope.id}"
-
-    def gcs_object_headers(_, _), do: ["cache-control": "no-store"]
   end
 
   defmodule DefinitionWithScopeFilename do
-    use Arc.Definition
+    use DefinitionTest
 
-    @acl "public-read"
     @versions [:original, :list]
-
-    def __storage, do: Arc.Storage.GCS
 
     def transform(:list, _) do
       resize_to_limit("80x80")
@@ -97,8 +101,6 @@ defmodule ArcTest.Storage.GCS do
       name = Path.basename(file.file_name, Path.extname(file.file_name))
       "#{scope.id}_#{version}_#{name}"
     end
-
-    def gcs_object_headers(_, _), do: ["cache-control": "no-store"]
   end
 
   def env_bucket do
@@ -201,6 +203,30 @@ defmodule ArcTest.Storage.GCS do
 
     Application.delete_env(:arc, :storage_dir)
     System.delete_env("TEST_STORAGE_DIR")
+  end
+
+  @tag timeout: 15000
+  test "public put and get with definition.bucket value ", %{name: name} do
+    Application.delete_env(:arc, :bucket)
+
+    assert {:ok, @img_name} == DummyDefinitionWithBucketValue.store({@img_path, name})
+    assert_public(DummyDefinitionWithBucketValue, {@img_name, name})
+
+    delete_and_assert_not_found(DummyDefinitionWithBucketValue, {@img_name, name})
+
+    Application.put_env(:arc, :bucket, env_bucket())
+  end
+
+  @tag timeout: 15000
+  test "public put and get with definition.bucket {:system, env}", %{name: name} do
+    Application.delete_env(:arc, :bucket)
+
+    assert {:ok, @img_name} == DummyDefinitionWithBucketEnv.store({@img_path, name})
+    assert_public(DummyDefinitionWithBucketEnv, {@img_name, name})
+
+    delete_and_assert_not_found(DummyDefinitionWithBucketEnv, {@img_name, name})
+
+    Application.put_env(:arc, :bucket, env_bucket())
   end
 
   @tag timeout: 15000
@@ -316,23 +342,12 @@ defmodule ArcTest.Storage.GCS do
       System.delete_env("TEST_STORAGE_DIR")
     end
 
-    test "without bucket", %{name: name} do
-      Application.delete_env(:arc, :bucket)
+    test "definition bucket with nil", %{name: name} do
+      assert DummyDefinitionWithNilBucket.url({@img_name, name}, signed: false) ==
+               "https://storage.googleapis.com/uploads/#{name}.png"
 
-      assert DummyDefinition.url({@img_name, name}, signed: false) ==
-               "https://storage.googleapis.com/arc-test/#{name}.png"
-
-      assert DummyDefinition.url({@img_name, name}, signed: true)
-             |> String.starts_with?("https://storage.googleapis.com/arc-test/#{name}.png")
-
-      Application.put_env(:arc, :bucket, env_bucket())
-    end
-
-    test "expires_in for signed url are set in URL", %{name: name} do
-      expiration = System.os_time(:seconds) + 10
-
-      assert DummyDefinition.url({@img_name, name}, signed: true, expires_in: 10)
-             |> String.contains?("Expires=#{expiration}")
+      assert DummyDefinitionWithNilBucket.url({@img_name, name}, signed: true)
+             |> String.starts_with?("https://storage.googleapis.com/uploads/#{name}.png")
     end
   end
 
