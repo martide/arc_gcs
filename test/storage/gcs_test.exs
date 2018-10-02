@@ -192,6 +192,14 @@ defmodule ArcTest.Storage.GCS do
   end
 
   @tag timeout: 15000
+  test "support space in filename" do
+    name = "Stenoptilodes umbrigeralis"
+    assert {:ok, @img_name} == DummyDefinition.store({@img_path, name})
+    assert_public(DummyDefinition, {@img_name, name})
+    delete_and_assert_not_found(DummyDefinition, {@img_name, name})
+  end
+
+  @tag timeout: 15000
   test "public put and get with system env storage_dir configuration", %{name: name} do
     System.put_env("TEST_STORAGE_DIR", "test-storage-dir-env")
     Application.put_env(:arc, :storage_dir, {:system, "TEST_STORAGE_DIR"})
@@ -308,6 +316,22 @@ defmodule ArcTest.Storage.GCS do
              )
 
       Application.put_env(:arc, :bucket, env_bucket())
+    end
+
+    test "config bucket begin with /", %{name: name} do
+      System.put_env("TEST_BUCKET", "/test-bucket-env")
+      Application.put_env(:arc, :bucket, {:system, "TEST_BUCKET"})
+
+      assert DummyDefinition.url({@img_name, name}, signed: false) ==
+               "https://storage.googleapis.com/test-bucket-env/arc-test/#{name}.png"
+
+      assert DummyDefinition.url({@img_name, name}, signed: true)
+             |> String.starts_with?(
+               "https://storage.googleapis.com/test-bucket-env/arc-test/#{name}.png"
+             )
+
+      Application.put_env(:arc, :bucket, env_bucket())
+      System.delete_env("TEST_BUCKET")
     end
 
     test "config bucket with ENV", %{name: name} do
