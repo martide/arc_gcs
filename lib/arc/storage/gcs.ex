@@ -39,15 +39,12 @@ defmodule Arc.Storage.GCS do
     expiration =
       System.os_time(:seconds) + Keyword.get(options, :expires_in, @default_expiry_time)
 
-    path =
-      case bucket_name(definition) do
-        nil -> "/#{endpoint}"
-        value -> "/#{value}/#{endpoint}"
-      end
+    path = build_path(definition, endpoint)
 
-    base_url = build_url(definition, endpoint)
     signature_string = url_to_sign("GET", "", "", expiration, "", path)
     url_encoded_signature = base64_sign_url(signature_string)
+
+    base_url = build_url(definition, endpoint)
 
     "#{base_url}?GoogleAccessId=#{client_id}&Expires=#{expiration}&Signature=#{
       url_encoded_signature
@@ -123,7 +120,6 @@ defmodule Arc.Storage.GCS do
   defp gcs_key(definition, version, file_and_scope) do
     definition
     |> do_gcs_key(version, file_and_scope)
-    |> URI.encode()
   end
 
   defp do_gcs_key(definition, version, file_and_scope) do
@@ -151,10 +147,21 @@ defmodule Arc.Storage.GCS do
   end
 
   defp build_url(definition, path) do
+    %URI{
+      host: endpoint(),
+      path: build_path(definition, path),
+      scheme: "https"
+    }
+    |> URI.to_string()
+  end
+
+  defp build_path(definition, path) do
     case bucket_name(definition) do
-      nil -> "https://#{endpoint()}/#{path}"
-      value -> "https://#{endpoint()}/#{value}/#{path}"
+      nil -> path
+      value -> Path.join(value, path)
     end
+    |> prepend_slash()
+    |> URI.encode()
   end
 
   defp bucket_name(definition) do
@@ -165,6 +172,9 @@ defmodule Arc.Storage.GCS do
 
   defp ensure_keyword_list(list) when is_list(list), do: list
   defp ensure_keyword_list(map) when is_map(map), do: Map.to_list(map)
+
+  defp prepend_slash("/" <> _rest = path), do: path
+  defp prepend_slash(path), do: "/#{path}"
 
   defp url_to_sign(verb, md5, type, expiration, headers, resource) do
     "#{verb}\n#{md5}\n#{type}\n#{expiration}\n#{headers}#{resource}"
