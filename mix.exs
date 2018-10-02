@@ -1,7 +1,7 @@
 defmodule Arc.Storage.GCS.Mixfile do
   use Mix.Project
 
-  @version "0.0.10"
+  @version "0.1.0"
 
   def project do
     [
