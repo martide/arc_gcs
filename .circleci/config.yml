@@ -1,6 +1,25 @@
 version: 2.0
 
 jobs:
+  "elixir-1.8":
+    docker:
+      - image: circleci/elixir:1.8
+        environment:
+          MIX_ENV: test
+    steps:
+      - checkout
+
+      - run: mix local.hex --force
+      - run: mix local.rebar --force
+      - run: mix do deps.get, compile
+      - run: mix format --dry-run --check-formatted
+      # - run: mix credo --strict
+      - run: mix coveralls.json
+      - run: bash <(curl -s https://codecov.io/bash)
+
+      - store_test_results:
+          path: cover
+
   "elixir-1.7":
     docker:
       - image: circleci/elixir:1.7
@@ -61,6 +80,7 @@ workflows:
   version: 2
   build:
     jobs:
+      - "elixir-1.8"
       - "elixir-1.7"
       - "elixir-1.6"
       - "elixir-1.5"
