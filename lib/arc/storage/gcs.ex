@@ -36,8 +36,7 @@ defmodule Arc.Storage.GCS do
   defp build_signed_url(definition, endpoint, options) do
     {:ok, client_id} = Goth.Config.get("client_email")
 
-    expiration =
-      System.os_time(:seconds) + Keyword.get(options, :expires_in, @default_expiry_time)
+    expiration = System.os_time(:second) + Keyword.get(options, :expires_in, @default_expiry_time)
 
     path = build_path(definition, endpoint)
 
