@@ -1,5 +1,8 @@
 # Changelog
 
+## v0.1.2 (2019-02-26)
+  * Change from `seconds` to `second`
+
 ## v0.1.1 (2019-02-12)
   * Bump dependencies
 
