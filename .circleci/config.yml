@@ -13,6 +13,7 @@ jobs:
       - checkout
       - run: mix local.hex --force
       - run: mix local.rebar --force
+      - run: mix do deps.get, compile
       - run: mix dialyzer
 
   "elixir-1.8":
