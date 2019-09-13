@@ -5,6 +5,7 @@
 
 Arc GCS Provides an [`Arc`](https://github.com/stavro/arc) storage back-end for [`Google Cloud Storage`](https://cloud.google.com/storage/).
 
+
 ## Installation
 
 Add the latest stable release to your `mix.exs` file:
@@ -28,25 +29,47 @@ config :arc,
   bucket: "gcs-bucket-name"
 
 config :goth,
-  json: "/path/to/json" |> Path.expand |> File.read!
+  json: "/path/to/json" |> Path.expand() |> File.read!()
+```
+
+The bucket may also be set using environment variables:
+
+```elixir
+config :arc, bucket: {:system, "ARC_BUCKET"}
 ```
 
 
 ### Tests
 
-To run the tests you need to set the following
+To run the tests:
 
--   `ARC_TEST_BUCKET` - e.g `gcs-bucket-name`
--   `GOOGLE_CREDENTIAL` - your JSON credential from Google
--   Finally `mix test`
+1. Ensure you (a) have a Google Cloud Platform account, (b) have a service
+account with read/write (i.e. admin) access to Cloud Storage, and (c) have the
+service account's credentials (the JSON file it has you download) available on
+the machine running the code.
+2. Set your environment variables: `ARC_BUCKET` and `GCP_CREDENTIALS` must both
+be set for the tests to work. `GCP_CREDENTIALS` should be the **contents** of
+your Google Cloud credentials JSON file (e.g. `cat creds.json`).
+3. Run `mix test`.
+
+**Note**: Because you will need your own Google Cloud Platform account and
+because you will be uploading files to Cloud Storage, you may incur costs
+associated with testing if you aren't ensuring proper cleanup. Although there is
+a cleanup function that executes after the test suite has completed, it is not
+guaranteed to always remove your files. If a test fails or if the cleanup fails,
+it is possible that your storage usage will increase as you perform testing and
+could cause you to be charged at the end of the month. Please check your test
+bucket (whatever `ARC_BUCKET` is set to) after running your tests and delete any
+leftover objects that weren't automatically deleted.
 
 
 ### Notes
 
 Basic functionality from [`Arc`](https://github.com/stavro/arc) including
+
 1. Store with ACL
 2. Delete
-3. Generate URL and sign URL
+3. Generate URL and sign URL (V2)
 
 
 ## License
