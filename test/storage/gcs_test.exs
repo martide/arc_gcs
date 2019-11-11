@@ -55,7 +55,7 @@ defmodule ArcTest.Storage.GCS do
   defmodule DummyDefinitionWithBucketEnv do
     use DefinitionTest
 
-    def bucket, do: {:system, "ARC_TEST_BUCKET"}
+    def bucket, do: {:system, "ARC_BUCKET"}
   end
 
   defmodule DummyDefinitionWithNilBucket do
@@ -104,7 +104,7 @@ defmodule ArcTest.Storage.GCS do
   end
 
   def env_bucket do
-    System.get_env("ARC_TEST_BUCKET")
+    System.get_env("ARC_BUCKET")
   end
 
   def random_name do
@@ -184,11 +184,11 @@ defmodule ArcTest.Storage.GCS do
 
   @tag timeout: 15000
   test "public put and get with system env bucket configuration", %{name: name} do
-    Application.put_env(:arc, :bucket, {:system, "ARC_TEST_BUCKET"})
+    Application.put_env(:arc, :bucket, {:system, "ARC_BUCKET"})
     assert {:ok, @img_name} == DummyDefinition.store({@img_path, name})
     assert_public(DummyDefinition, {@img_name, name})
     delete_and_assert_not_found(DummyDefinition, {@img_name, name})
-    Application.put_env(:arc, :bucket, System.get_env("ARC_TEST_BUCKET"))
+    Application.put_env(:arc, :bucket, System.get_env("ARC_BUCKET"))
   end
 
   @tag timeout: 15000
