@@ -8,7 +8,6 @@ defmodule Arc.Storage.GCS.Mixfile do
       app: :arc_gcs,
       version: @version,
       elixir: "~> 1.5",
-      elixirc_paths: elixirc_paths(Mix.env()),
       deps: deps(),
       description: description(),
       package: package(),
@@ -37,18 +36,14 @@ defmodule Arc.Storage.GCS.Mixfile do
     ]
   end
 
-  # Specifies which paths to compile per environment.
-  defp elixirc_paths(:test), do: ["lib", "test/support"]
-  defp elixirc_paths(_), do: ["lib"]
-
   defp deps do
     [
-      {:arc, "~> 0.11"},
+      {:arc, "~> 0.8"},
       {:dialyxir, "~> 1.0.0-rc.6", only: [:dev, :test], runtime: false},
       {:excoveralls, "~> 0.6", only: :test},
       {:ex_doc, ">= 0.0.0", only: :dev},
       {:goth, "~> 1.0"},
-      {:google_api_storage, "~> 0.12"},
+      {:sweet_xml, "~> 0.6"}
     ]
   end
 end
