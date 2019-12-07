@@ -7,6 +7,8 @@ defmodule Arc.Storage.GCS do
   @endpoint "storage.googleapis.com"
   @library_version Mix.Project.config() |> Keyword.get(:version, "")
 
+  # available options resource settings
+  # https://cloud.google.com/storage/docs/json_api/v1/objects#resource
   @object_attrs [
     "acl",
     "cacheControl",
