@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.2.0 (2019-12-09)
+  * Switch from SweetXML to the official Google Cloud API library
+  * Bump dependencies
+
 ## v0.1.2 (2019-02-26)
   * Change from `seconds` to `second`
 
