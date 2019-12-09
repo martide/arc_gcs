@@ -22,7 +22,7 @@ defmodule DefinitionTest do
       end
 
       def gcs_object_headers(_, _) do
-        ["cache-control": "no-store"]
+        ["cache-control": "no-store", unknown: "dontcare"]
       end
 
       defoverridable filename: 2, acl: 2, gcs_object_headers: 2

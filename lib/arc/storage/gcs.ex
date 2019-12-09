@@ -1,25 +1,49 @@
 defmodule Arc.Storage.GCS do
   alias Goth.Token
-  import SweetXml
+  alias GoogleApi.Storage.V1.{Api.Objects, Connection, Model.Object}
+  alias GoogleApi.Gax.{Request, Response}
 
   @default_expiry_time 60 * 5
   @endpoint "storage.googleapis.com"
-  @full_control_scope "https://www.googleapis.com/auth/devstorage.full_control"
+  @library_version Mix.Project.config() |> Keyword.get(:version, "")
+
+  # available options resource settings
+  # https://cloud.google.com/storage/docs/json_api/v1/objects#resource
+  @object_attrs [
+    "acl",
+    "cacheControl",
+    "contentDisposition",
+    "contentEncoding",
+    "contentLanguage",
+    "contentType",
+    "crc32c",
+    "etag",
+    "kmsKeyName",
+    "md5Hash",
+    "mediaLink",
+    "storageClass",
+    "temporaryHold",
+    "timeCreated",
+    "timeDeleted",
+    "timeStorageClassUpdated",
+    "updated"
+  ]
 
   def put(definition, version, {file, _scope} = file_and_scope) do
     # Path must be calculated within put function as file.file_name has
     # already been modified by arc/arc-ecto to reflect
     # the definition's filename function
-    destination_dir = get_storage_dir(definition, version, file_and_scope)
-    path = Path.join(destination_dir, file.file_name)
-
-    acl = definition.acl(version, file_and_scope)
+    path =
+      definition
+      |> get_storage_dir(version, file_and_scope)
+      |> Path.join(file.file_name)
 
     gcs_options =
       get_gcs_options(definition, version, file_and_scope)
-      |> ensure_keyword_list
-      |> Keyword.put(:x_goog_acl, acl)
-      |> transform_headers
+      |> Enum.to_list()
+      |> Keyword.put(:acl, definition.acl(version, file_and_scope))
+      |> transform_headers()
+      |> to_object_attrs()
 
     do_put(definition, file, path, gcs_options)
   end
@@ -52,12 +76,8 @@ defmodule Arc.Storage.GCS do
 
   def delete(definition, version, file_and_scope) do
     key = gcs_key(definition, version, file_and_scope)
-    url = build_url(definition, key)
-
-    case HTTPoison.delete!(url, default_headers()) do
-      %{status_code: 204} -> :ok
-      _ -> :error
-    end
+    bucket = bucket_name(definition)
+    Objects.storage_objects_delete(conn(), bucket, key)
   end
 
   defp get_storage_dir(definition, version, file_and_scope) do
@@ -74,38 +94,71 @@ defmodule Arc.Storage.GCS do
     name
   end
 
-  defp do_put(definition, %{binary: nil} = file, path, gcs_options) do
-    do_put(definition, path, {:file, file.path}, gcs_options, file.file_name)
+  defp do_put(definition, %Arc.File{binary: nil} = file, path, gcs_options) do
+    obj = build_object({file, path}, gcs_options)
+    bucket = bucket_name(definition)
+
+    Objects.storage_objects_insert_simple(
+      conn(),
+      bucket,
+      "multipart",
+      obj,
+      file.path,
+      predefinedAcl: obj.acl
+    )
   end
 
-  defp do_put(definition, %{binary: binary} = file, path, gcs_options)
-       when is_binary(binary) do
-    do_put(definition, path, binary, gcs_options, file.file_name)
-  end
+  defp do_put(definition, %Arc.File{binary: binary} = file, path, gcs_options) do
+    obj = build_object({file, path}, gcs_options)
+    bucket = bucket_name(definition)
 
-  defp do_put(definition, path, body, gcs_options, file_name) do
-    url = build_url(definition, path)
-    headers = gcs_options ++ default_headers()
+    body =
+      Tesla.Multipart.new()
+      |> Tesla.Multipart.add_field(
+        "metadata",
+        Poison.encode!(obj),
+        headers: [{:"Content-Type", "application/json"}]
+      )
+      |> Tesla.Multipart.add_file_content(binary, "data")
 
-    case HTTPoison.put!(url, body, headers, hackney_opts()) do
-      %{status_code: 200} ->
-        {:ok, file_name}
+    request =
+      Request.new()
+      |> Request.method(:post)
+      |> Request.url("/upload/storage/v1/b/{bucket}/o", %{
+        "bucket" => URI.encode(bucket, &URI.char_unreserved?/1)
+      })
+      |> Request.add_param(:query, :uploadType, "multipart")
+      |> Request.add_param(:body, :body, body)
+      |> Request.add_optional_params(%{predefinedAcl: :query}, predefinedAcl: obj.acl)
+      |> Request.library_version(@library_version)
 
-      %{body: body} ->
-        error = xpath(body, ~x"//Details/text()"S)
-        {:error, error}
-    end
+    conn()
+    |> Connection.execute(request)
+    |> Response.decode(struct: %Object{})
   end
 
   defp transform_headers(headers) do
-    Enum.map(headers, fn {key, val} ->
-      {to_string(key) |> String.replace("_", "-"), val}
-    end)
+    Enum.map(headers, &transform_header/1)
   end
 
-  defp get_token do
-    {:ok, %{token: token}} = Token.for_scope(@full_control_scope)
-    token
+  defp transform_header({key, val}) when key in [:acl, "acl"] do
+    {camelize(key), camelize(val)}
+  end
+
+  defp transform_header({key, val}) do
+    {camelize(key), val}
+  end
+
+  defp to_object_attrs(headers) do
+    Enum.reduce(headers, [], &to_object_attrs/2)
+  end
+
+  defp to_object_attrs({key, val}, acc) when key in @object_attrs do
+    [{String.to_atom(key), val} | acc]
+  end
+
+  defp to_object_attrs(_, acc) do
+    acc
   end
 
   defp endpoint do
@@ -137,14 +190,6 @@ defmodule Arc.Storage.GCS do
     end
   end
 
-  defp hackney_opts() do
-    Application.get_env(:arc_gcs, :hackney_opts, [])
-  end
-
-  defp default_headers do
-    [{"Authorization", "Bearer #{get_token()}"}]
-  end
-
   defp build_url(definition, path) do
     %URI{
       host: endpoint(),
@@ -168,9 +213,6 @@ defmodule Arc.Storage.GCS do
       System.get_env(to_string(env_var))
     end
   end
-
-  defp ensure_keyword_list(list) when is_list(list), do: list
-  defp ensure_keyword_list(map) when is_map(map), do: Map.to_list(map)
 
   defp prepend_slash("/" <> _rest = path), do: path
   defp prepend_slash(path), do: "/#{path}"
@@ -198,5 +240,30 @@ defmodule Arc.Storage.GCS do
     |> :public_key.sign(:sha256, rsa_key)
     |> Base.encode64()
     |> URI.encode_www_form()
+  end
+
+  defp build_object({%Arc.File{file_name: file_name}, name}, opts) do
+    opts
+    |> Keyword.put(:name, name)
+    |> Keyword.put_new(:contentType, MIME.from_path(file_name))
+    |> (&struct(Object, &1)).()
+  end
+
+  defp conn(), do: Connection.new(&for_scope/1)
+
+  defp for_scope(scopes) when is_list(scopes), do: for_scope(Enum.join(scopes, " "))
+
+  defp for_scope(scope) when is_binary(scope) do
+    {:ok, token} = Token.for_scope(scope)
+    token.token
+  end
+
+  defp camelize(word) do
+    case Regex.split(~r/(?:^|[-_])|(?=[A-Z])/, to_string(word), trim: true) do
+      [h] -> [String.downcase(h)]
+      [h | t] -> [String.downcase(h), Enum.map(t, &String.capitalize/1)]
+      [] -> []
+    end
+    |> Enum.join()
   end
 end

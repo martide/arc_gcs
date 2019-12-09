@@ -43,7 +43,8 @@ defmodule Arc.Storage.GCS.Mixfile do
       {:excoveralls, "~> 0.6", only: :test},
       {:ex_doc, ">= 0.0.0", only: :dev},
       {:goth, "~> 1.0"},
-      {:sweet_xml, "~> 0.6"}
+      {:google_api_storage, "~> 0.13"},
+      {:mime, "~> 1.3"}
     ]
   end
 end
