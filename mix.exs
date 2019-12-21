@@ -1,13 +1,13 @@
 defmodule Arc.Storage.GCS.Mixfile do
   use Mix.Project
 
-  @version "0.2.0"
+  @version "0.2.1"
 
   def project do
     [
       app: :arc_gcs,
       version: @version,
-      elixir: "~> 1.5",
+      elixir: "~> 1.6",
       deps: deps(),
       description: description(),
       package: package(),
