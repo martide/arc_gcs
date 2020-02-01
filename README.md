@@ -1,6 +1,6 @@
 # Arc Google Cloud Storage
 
-[![CircleCI](https://circleci.com/gh/martide/arc_gcs.svg?style=svg)](https://circleci.com/gh/martide/arc_gcs)
+![Elixir](https://github.com/martide/arc_gcs/workflows/Elixir/badge.svg)
 [![codecov](https://codecov.io/gh/martide/arc_gcs/branch/master/graph/badge.svg)](https://codecov.io/gh/martide/arc_gcs)
 
 Arc GCS Provides an [`Arc`](https://github.com/stavro/arc) storage back-end for [`Google Cloud Storage`](https://cloud.google.com/storage/).
@@ -51,7 +51,7 @@ Basic functionality from [`Arc`](https://github.com/stavro/arc) including
 
 ## License
 
-Copyright 2017 Martide Limited
+Copyright 2017-2020 Martide Limited
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
