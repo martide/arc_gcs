@@ -38,9 +38,9 @@ defmodule Arc.Storage.GCS.Mixfile do
 
   defp deps do
     [
-      {:arc, "~> 0.8"},
-      {:dialyxir, "~> 1.0.0-rc.6", only: [:dev, :test], runtime: false},
-      {:excoveralls, "~> 0.6", only: :test},
+      {:arc, "~> 0.11"},
+      {:dialyxir, "~> 1.0.0-rc.7", only: [:dev, :test], runtime: false},
+      {:excoveralls, "~> 0.12.2", only: :test},
       {:ex_doc, ">= 0.0.0", only: :dev},
       {:goth, "~> 1.0"},
       {:google_api_storage, "~> 0.13"},
