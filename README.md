@@ -1,7 +1,7 @@
 # Arc Google Cloud Storage
 
 ![Elixir](https://github.com/martide/arc_gcs/workflows/Elixir/badge.svg)
-[![codecov](https://codecov.io/gh/martide/arc_gcs/branch/master/graph/badge.svg)](https://codecov.io/gh/martide/arc_gcs)
+[![Coverage Status](https://coveralls.io/repos/github/martide/arc_gcs/badge.svg?branch=cover)](https://coveralls.io/github/martide/arc_gcs?branch=cover)
 
 Arc GCS Provides an [`Arc`](https://github.com/stavro/arc) storage back-end for [`Google Cloud Storage`](https://cloud.google.com/storage/).
 
