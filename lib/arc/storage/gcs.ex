@@ -97,6 +97,10 @@ defmodule Arc.Storage.GCS do
   defp do_put(definition, %Arc.File{binary: nil} = file, path, gcs_options) do
     obj = build_object({file, path}, gcs_options)
     bucket = bucket_name(definition)
+    insert_opts = case obj.acl do
+      false -> []
+      acl -> [predefinedAcl: obj.acl]
+    end
 
     Objects.storage_objects_insert_simple(
       conn(),
@@ -104,7 +108,7 @@ defmodule Arc.Storage.GCS do
       "multipart",
       obj,
       file.path,
-      predefinedAcl: obj.acl
+      insert_opts
     )
   end
 
@@ -129,7 +133,7 @@ defmodule Arc.Storage.GCS do
       })
       |> Request.add_param(:query, :uploadType, "multipart")
       |> Request.add_param(:body, :body, body)
-      |> Request.add_optional_params(%{predefinedAcl: :query}, predefinedAcl: obj.acl)
+      |> add_acl_param(obj.acl)
       |> Request.library_version(@library_version)
 
     conn()
@@ -137,11 +141,17 @@ defmodule Arc.Storage.GCS do
     |> Response.decode(struct: %Object{})
   end
 
+  defp add_acl_param(request, false), do: request
+
+  defp add_acl_param(request, acl) do
+    Request.add_optional_params(request, %{predefinedAcl: :query}, predefinedAcl: acl)
+  end
+
   defp transform_headers(headers) do
     Enum.map(headers, &transform_header/1)
   end
 
-  defp transform_header({key, val}) when key in [:acl, "acl"] do
+  defp transform_header({key, val}) when key in [:acl, "acl"] and val != false do
     {camelize(key), camelize(val)}
   end
 
