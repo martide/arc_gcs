@@ -31,6 +31,35 @@ config :goth,
   json: "/path/to/json" |> Path.expand |> File.read!
 ```
 
+#### Custom Token Generation ####
+
+By default, the credentials provided to Goth will be used to generate tokens.
+If you have multiple sets of credentials in Goth or otherwise need more control
+over token generation, you can define your own module:
+
+```elixir
+defmodule MyCredentials do
+  @behaviour Arc.Storage.GCS.TokenFetcher
+
+  @impl Arc.Storage.GCS.TokenFetcher
+  def get_token(scopes) when is_list(scopes), do: get_token(Enum.join(scopes, " "))
+
+  @impl Arc.Storage.GCS.TokenFetcher
+  def get_token(scope) when is_binary(scope) do
+    {:ok, token} = Goth.Token.for_scope({"my-user@my-gcs-account.com", scope})
+    token.token
+  end
+end
+```
+
+And configure it to use this new module instead of the default token generation:
+
+```elixir
+config :arc,
+  storage: Arc.Storage.GCS,
+  bucket: "gcs-bucket-name",
+  token_fetcher: MyCredentials
+```
 
 ### Tests
 
