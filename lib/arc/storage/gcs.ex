@@ -251,13 +251,6 @@ defmodule Arc.Storage.GCS do
 
   defp conn(), do: Connection.new(&for_scope/1)
 
-  defp for_scope(scopes) when is_list(scopes), do: for_scope(Enum.join(scopes, " "))
-
-  defp for_scope(scope) when is_binary(scope) do
-    {:ok, token} = Token.for_scope(scope)
-    token.token
-  end
-
   defp camelize(word) do
     case Regex.split(~r/(?:^|[-_])|(?=[A-Z])/, to_string(word), trim: true) do
       [h] -> [String.downcase(h)]
@@ -265,5 +258,26 @@ defmodule Arc.Storage.GCS do
       [] -> []
     end
     |> Enum.join()
+  end
+
+  defmodule TokenFetcher do
+    @callback get_token(binary | [binary]) :: binary
+  end
+
+  defmodule DefaultGothToken do
+    @behaviour TokenFetcher
+
+    @impl TokenFetcher
+    def get_token(scopes) when is_list(scopes), do: get_token(Enum.join(scopes, " "))
+
+    def get_token(scope) when is_binary(scope) do
+      {:ok, token} = Token.for_scope(scope)
+      token.token
+    end
+  end
+
+  defp for_scope(scopes) do
+    token_store = Application.get_env(:arc, :token_fetcher, DefaultGothToken)
+    token_store.get_token(scopes)
   end
 end
