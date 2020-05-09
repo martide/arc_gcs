@@ -31,7 +31,7 @@ defmodule DefinitionTest do
 end
 
 defmodule ArcTest.Storage.GCS do
-  use ExUnit.Case, async: true
+  use ExUnit.Case
 
   @img_name "image.png"
   @img_path "test/support/#{@img_name}"
