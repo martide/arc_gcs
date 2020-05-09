@@ -99,7 +99,7 @@ defmodule Arc.Storage.GCS do
     bucket = bucket_name(definition)
     insert_opts = case obj.acl do
       false -> []
-      acl -> [predefinedAcl: obj.acl]
+      acl -> [predefinedAcl: acl]
     end
 
     Objects.storage_objects_insert_simple(
