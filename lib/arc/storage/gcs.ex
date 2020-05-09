@@ -97,10 +97,12 @@ defmodule Arc.Storage.GCS do
   defp do_put(definition, %Arc.File{binary: nil} = file, path, gcs_options) do
     obj = build_object({file, path}, gcs_options)
     bucket = bucket_name(definition)
-    insert_opts = case obj.acl do
-      false -> []
-      acl -> [predefinedAcl: acl]
-    end
+
+    insert_opts =
+      case obj.acl do
+        false -> []
+        acl -> [predefinedAcl: acl]
+      end
 
     Objects.storage_objects_insert_simple(
       conn(),
