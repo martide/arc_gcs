@@ -216,8 +216,8 @@ defmodule ArcTest.Storage.GCS do
   end
 
   @tag timeout: 30_000
-  test "support space in filename" do
-    name = "Stenoptilodes umbrigeralis"
+  test "support space in filename", %{name: name} do
+    name = "#{name} #{name}"
     assert {:ok, @img_name} == DummyDefinition.store({@img_path, name})
     assert_public(DummyDefinition, {@img_name, name})
     delete_and_assert_not_found(DummyDefinition, {@img_name, name})
@@ -262,69 +262,82 @@ defmodule ArcTest.Storage.GCS do
   end
 
   @tag timeout: 30_000
-  test "private put" do
-    # put the image as private
-    assert {:ok, @img_name} == DummyDefinition.store({@img_path, :private})
-    assert_private(DummyDefinition, {@img_name, :private})
-    delete_and_assert_not_found(DummyDefinition, {@img_name, :private})
+  test "private put", %{name: name} do
+    file = %{filename: name, path: @img_path}
+    assert {:ok, name} == DummyDefinition.store({file, :private})
+    assert_private(DummyDefinition, {%{file_name: name}, :private})
+    delete_and_assert_not_found(DummyDefinition, {name, :private})
   end
 
   @tag timeout: 30_000
-  test "content_type" do
-    {:ok, @img_name} = DummyDefinition.store({@img_path, :with_content_type})
-    assert_header(DummyDefinition, {@img_name, :with_content_type}, "content-type", "image/png")
-    delete_and_assert_not_found(DummyDefinition, {@img_name, :with_content_type})
+  test "content_type", %{name: name} do
+    file = %{filename: name, path: @img_path}
+    assert {:ok, name} == DummyDefinition.store({file, :with_content_type})
+
+    assert_header(
+      DummyDefinition,
+      {%{file_name: name}, :with_content_type},
+      "content-type",
+      "image/png"
+    )
+
+    delete_and_assert_not_found(DummyDefinition, {name, :with_content_type})
   end
 
   @tag timeout: 30_000
-  test "content_type map" do
-    {:ok, @img_name} = DummyDefinition.store({@img_path, :map})
-    assert_header(DummyDefinition, {@img_name, :map}, "content-type", "image/png")
-    delete_and_assert_not_found(DummyDefinition, {@img_name, :map})
+  test "content_type map", %{name: name} do
+    file = %{filename: name, path: @img_path}
+    assert {:ok, name} == DummyDefinition.store({file, :map})
+    assert_header(DummyDefinition, {%{file_name: name}, :map}, "content-type", "image/png")
+    delete_and_assert_not_found(DummyDefinition, {name, :map})
   end
 
-  @tag timeout: 150_000
-  test "delete with scope" do
+  @tag timeout: 30_000
+  test "delete with scope", %{name: name} do
+    name = "#{name}.jpg"
     scope = %{id: 1}
-    {:ok, @img_name} = DefinitionWithScope.store({@img_path, scope})
+    file = %{filename: name, path: @img_path}
+    assert {:ok, name} == DefinitionWithScope.store({file, scope})
 
-    assert DefinitionWithScope.url({@img_name, scope}, signed: true) =~
-             "storage.googleapis.com/#{env_bucket()}/arc-test/with-scopes/1/image.png"
+    assert DefinitionWithScope.url({%{file_name: name}, scope}, signed: true) =~
+             "storage.googleapis.com/#{env_bucket()}/arc-test/with-scopes/1/#{name}"
 
-    assert_public(DefinitionWithScope, {@img_name, scope})
-    delete_and_assert_not_found(DefinitionWithScope, {@img_name, scope})
+    assert_public(DefinitionWithScope, {%{file_name: name}, scope})
+    delete_and_assert_not_found(DefinitionWithScope, {name, scope})
   end
 
-  @tag timeout: 150_000
-  test "put with error" do
+  @tag timeout: 30_000
+  test "put with error", %{name: name} do
     Application.put_env(:arc, :bucket, "unknown-bucket")
-    {:error, res} = DummyDefinition.store(@img_path)
+    {:error, res} = DummyDefinition.store({@img_path, name})
     Application.put_env(:arc, :bucket, env_bucket())
     assert res
   end
 
-  @tag timeout: 150_000
+  @tag timeout: 30_000
   test "put with converted version", %{name: name} do
     assert {:ok, @img_name} == DefinitionWithThumbnail.store({@img_path, name})
     assert_public_with_extension(DefinitionWithThumbnail, {@img_name, name}, :thumb, ".jpg")
     delete_and_assert_not_found(DefinitionWithThumbnail, {@img_name, name})
   end
 
-  @tag timeout: 150_000
-  test "put correct filename with scope" do
+  @tag timeout: 30_000
+  test "put correct filename with scope", %{name: name} do
+    name = "#{name}.jpg"
     scope = %{id: 1}
-    {:ok, @img_name} = DefinitionWithScopeFilename.store({@img_path, scope})
+    file = %{filename: name, path: @img_path}
+    assert {:ok, name} == DefinitionWithScopeFilename.store({file, scope})
 
-    urls = DefinitionWithScopeFilename.urls({@img_name, scope}, signed: false)
+    urls = DefinitionWithScopeFilename.urls({%{file_name: name}, scope}, signed: false)
 
     assert urls.original =~
-             "storage.googleapis.com/#{env_bucket()}/arc-test/with-scopes/1/1_original_image.png"
+             "storage.googleapis.com/#{env_bucket()}/arc-test/with-scopes/1/1_original_#{name}"
 
     assert urls.list =~
-             "storage.googleapis.com/#{env_bucket()}/arc-test/with-scopes/1/1_list_image.jpg"
+             "storage.googleapis.com/#{env_bucket()}/arc-test/with-scopes/1/1_list_#{name}"
 
-    assert_public(DefinitionWithScopeFilename, {@img_name, scope})
-    delete_and_assert_not_found(DefinitionWithScopeFilename, {@img_name, scope})
+    assert_public(DefinitionWithScopeFilename, {%{file_name: name}, scope})
+    delete_and_assert_not_found(DefinitionWithScopeFilename, {name, scope})
   end
 
   describe "url" do
