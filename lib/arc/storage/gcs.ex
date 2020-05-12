@@ -260,24 +260,8 @@ defmodule Arc.Storage.GCS do
     |> Enum.join()
   end
 
-  defmodule TokenFetcher do
-    @callback get_token(binary | [binary]) :: binary
-  end
-
-  defmodule DefaultGothToken do
-    @behaviour TokenFetcher
-
-    @impl TokenFetcher
-    def get_token(scopes) when is_list(scopes), do: get_token(Enum.join(scopes, " "))
-
-    def get_token(scope) when is_binary(scope) do
-      {:ok, token} = Token.for_scope(scope)
-      token.token
-    end
-  end
-
   defp for_scope(scopes) do
-    token_store = Application.get_env(:arc, :token_fetcher, DefaultGothToken)
+    token_store = Application.get_env(:arc, :token_fetcher, Arc.Storage.GCS.Token.DefaultFetcher)
     token_store.get_token(scopes)
   end
 end
