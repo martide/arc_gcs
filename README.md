@@ -12,7 +12,7 @@ Add the latest stable release to your `mix.exs` file:
 ```elixir
 defp deps do
   [
-    {:arc_gcs, "~> 0.2.0"}
+    {:arc_gcs, "~> 0.2"}
   ]
 end
 ```
