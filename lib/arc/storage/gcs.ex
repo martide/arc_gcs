@@ -263,13 +263,6 @@ defmodule Arc.Storage.GCS do
 
   defp conn(), do: Connection.new(&for_scope/1)
 
-  defp for_scope(scopes) when is_list(scopes), do: for_scope(Enum.join(scopes, " "))
-
-  defp for_scope(scope) when is_binary(scope) do
-    {:ok, token} = Token.for_scope(scope)
-    token.token
-  end
-
   defp camelize(word) do
     case Regex.split(~r/(?:^|[-_])|(?=[A-Z])/, to_string(word), trim: true) do
       [h] -> [String.downcase(h)]
@@ -277,5 +270,10 @@ defmodule Arc.Storage.GCS do
       [] -> []
     end
     |> Enum.join()
+  end
+
+  defp for_scope(scopes) do
+    token_store = Application.get_env(:arc, :token_fetcher, Arc.Storage.GCS.Token.DefaultFetcher)
+    token_store.get_token(scopes)
   end
 end
