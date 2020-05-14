@@ -1,5 +1,4 @@
 defmodule Arc.Storage.GCS do
-  alias Goth.Token
   alias GoogleApi.Storage.V1.{Api.Objects, Connection, Model.Object}
   alias GoogleApi.Gax.{Request, Response}
 
