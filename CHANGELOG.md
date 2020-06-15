@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.2.3 (2019-12-21)
+  * Fixed missing alias for Goth.Token module (#101)
+
+## v0.2.2 (2019-12-21)
+  * Use GitHub Actions (#88)
+  * Add test coverage tool (#90)
+  * Allow upload with no ACL (#98)
+  * Fix various compile warnings (#100)
+  * Configurable token generation (#97)
+  * Bump dependencies
+
+## v0.2.1 (2019-12-21)
+  * Bump dependencies
+
 ## v0.2.0 (2019-12-09)
   * Switch from SweetXML to the official Google Cloud API library
   * Bump dependencies
