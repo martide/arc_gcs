@@ -1,0 +1,9 @@
+version: 2
+updates:
+- package-ecosystem: mix
+  directory: "/"
+  schedule:
+    interval: monthly
+    time: "21:00"
+    timezone: Etc/UTC
+  open-pull-requests-limit: 99
