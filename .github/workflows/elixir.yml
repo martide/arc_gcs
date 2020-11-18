@@ -24,6 +24,7 @@ jobs:
         with:
           otp-version: ${{matrix.otp}}
           elixir-version: ${{matrix.elixir}}
+          experimental-otp: true
       - run: mix do deps.get, compile --warnings-as-errors
       - run: mix format --dry-run --check-formatted
       # - run: mix credo --strict
@@ -42,6 +43,7 @@ jobs:
         with:
           otp-version: ${{matrix.otp}}
           elixir-version: ${{matrix.elixir}}
+          experimental-otp: true
       - run: mix do deps.get, compile --warnings-as-errors
       - run: mix format --dry-run --check-formatted
       # - run: mix credo --strict
@@ -60,6 +62,7 @@ jobs:
         with:
           otp-version: ${{matrix.otp}}
           elixir-version: ${{matrix.elixir}}
+          experimental-otp: true
       - run: mix do deps.get, compile --warnings-as-errors
       - run: mix format --dry-run --check-formatted
       # - run: mix credo --strict
@@ -78,6 +81,7 @@ jobs:
         with:
           otp-version: ${{matrix.otp}}
           elixir-version: ${{matrix.elixir}}
+          experimental-otp: true
       - run: mix do deps.get, compile --warnings-as-errors
       - run: mix format --dry-run --check-formatted
       # - run: mix credo --strict
@@ -96,6 +100,7 @@ jobs:
         with:
           otp-version: ${{matrix.otp}}
           elixir-version: ${{matrix.elixir}}
+          experimental-otp: true
       - run: mix do deps.get, compile --warnings-as-errors
       - run: mix format --dry-run --check-formatted
       # - run: mix credo --strict
