@@ -9,8 +9,26 @@ env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   MIX_ENV: test
 
-# https://github.com/elixir-lang/elixir/blob/master/lib/elixir/pages/Compatibility%20and%20Deprecations.md
+# https://github.com/elixir-lang/elixir/blob/master/lib/elixir/pages/compatibility-and-deprecations.md
 jobs:
+  elixir_1_11:
+    runs-on: ubuntu-20.04
+    name: OTP ${{matrix.otp}} / Elixir ${{matrix.elixir}}
+    strategy:
+      matrix:
+        otp: [21.x, 22.x, 23.x]
+        elixir: [1.11.x]
+    steps:
+      - uses: actions/checkout@v2
+      - uses: erlef/setup-elixir@v1
+        with:
+          otp-version: ${{matrix.otp}}
+          elixir-version: ${{matrix.elixir}}
+      - run: mix do deps.get, compile --warnings-as-errors
+      - run: mix format --dry-run --check-formatted
+      # - run: mix credo --strict
+      - run: mix coveralls.github
+
   elixir_1_10:
     runs-on: ubuntu-20.04
     name: OTP ${{matrix.otp}} / Elixir ${{matrix.elixir}}
@@ -54,42 +72,6 @@ jobs:
       matrix:
         otp: [20.x, 21.x, 22.x]
         elixir: [1.8.x]
-    steps:
-      - uses: actions/checkout@v2
-      - uses: erlef/setup-elixir@v1
-        with:
-          otp-version: ${{matrix.otp}}
-          elixir-version: ${{matrix.elixir}}
-      - run: mix do deps.get, compile --warnings-as-errors
-      - run: mix format --dry-run --check-formatted
-      # - run: mix credo --strict
-      - run: mix coveralls.github
-
-  elixir_1_7:
-    runs-on: ubuntu-20.04
-    name: OTP ${{matrix.otp}} / Elixir ${{matrix.elixir}}
-    strategy:
-      matrix:
-        otp: [19.x, 20.x, 21.x, 22.x]
-        elixir: [1.7.x]
-    steps:
-      - uses: actions/checkout@v2
-      - uses: erlef/setup-elixir@v1
-        with:
-          otp-version: ${{matrix.otp}}
-          elixir-version: ${{matrix.elixir}}
-      - run: mix do deps.get, compile --warnings-as-errors
-      - run: mix format --dry-run --check-formatted
-      # - run: mix credo --strict
-      - run: mix coveralls.github
-
-  elixir_1_6:
-    runs-on: ubuntu-20.04
-    name: OTP ${{matrix.otp}} / Elixir ${{matrix.elixir}}
-    strategy:
-      matrix:
-        otp: [19.x, 20.x, 21.x]
-        elixir: [1.6.x]
     steps:
       - uses: actions/checkout@v2
       - uses: erlef/setup-elixir@v1
