@@ -20,11 +20,10 @@ jobs:
         elixir: [1.10.x]
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/setup-elixir@v1
+      - uses: erlef/setup-elixir@v1
         with:
           otp-version: ${{matrix.otp}}
           elixir-version: ${{matrix.elixir}}
-          experimental-otp: true
       - run: mix do deps.get, compile --warnings-as-errors
       - run: mix format --dry-run --check-formatted
       # - run: mix credo --strict
@@ -39,11 +38,10 @@ jobs:
         elixir: [1.9.x]
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/setup-elixir@v1
+      - uses: erlef/setup-elixir@v1
         with:
           otp-version: ${{matrix.otp}}
           elixir-version: ${{matrix.elixir}}
-          experimental-otp: true
       - run: mix do deps.get, compile --warnings-as-errors
       - run: mix format --dry-run --check-formatted
       # - run: mix credo --strict
@@ -58,11 +56,10 @@ jobs:
         elixir: [1.8.x]
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/setup-elixir@v1
+      - uses: erlef/setup-elixir@v1
         with:
           otp-version: ${{matrix.otp}}
           elixir-version: ${{matrix.elixir}}
-          experimental-otp: true
       - run: mix do deps.get, compile --warnings-as-errors
       - run: mix format --dry-run --check-formatted
       # - run: mix credo --strict
@@ -77,11 +74,10 @@ jobs:
         elixir: [1.7.x]
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/setup-elixir@v1
+      - uses: erlef/setup-elixir@v1
         with:
           otp-version: ${{matrix.otp}}
           elixir-version: ${{matrix.elixir}}
-          experimental-otp: true
       - run: mix do deps.get, compile --warnings-as-errors
       - run: mix format --dry-run --check-formatted
       # - run: mix credo --strict
@@ -96,11 +92,10 @@ jobs:
         elixir: [1.6.x]
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/setup-elixir@v1
+      - uses: erlef/setup-elixir@v1
         with:
           otp-version: ${{matrix.otp}}
           elixir-version: ${{matrix.elixir}}
-          experimental-otp: true
       - run: mix do deps.get, compile --warnings-as-errors
       - run: mix format --dry-run --check-formatted
       # - run: mix credo --strict
