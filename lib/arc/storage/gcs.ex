@@ -211,9 +211,13 @@ defmodule Arc.Storage.GCS do
   end
 
   defp build_path(definition, path) do
-    case bucket_name(definition) do
-      nil -> path
-      value -> Path.join(value, path)
+    bucket = bucket_name(definition)
+    cond do
+      # if arc is configured to point to a virtual host, do not include the
+      # bucket in the URL's path
+      virtual_host?() -> path
+      is_binary(bucket) -> Path.join(bucket, path)
+      true -> path
     end
     |> prepend_slash()
     |> URI.encode()
@@ -275,4 +279,6 @@ defmodule Arc.Storage.GCS do
     token_store = Application.get_env(:arc, :token_fetcher, Arc.Storage.GCS.Token.DefaultFetcher)
     token_store.get_token(scopes)
   end
+
+  defp virtual_host?, do: Application.get_env(:arc, :virtual_host, false) == true
 end

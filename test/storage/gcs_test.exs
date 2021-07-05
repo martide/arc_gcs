@@ -432,5 +432,50 @@ defmodule ArcTest.Storage.GCS do
       Application.delete_env(:arc, :asset_host)
       System.delete_env("ASSET_HOST")
     end
+
+    test "config asset_host with virtual_host", %{name: name} do
+      Application.put_env(:arc, :bucket, "i_better_not_be_in_the_url")
+      Application.put_env(:arc, :asset_host, "test-asset-host-nobucket.env")
+      Application.put_env(:arc, :virtual_host, true)
+
+      assert DummyDefinition.url({@img_name, name}, signed: false) ==
+               "https://test-asset-host-nobucket.env/arc-test/#{name}.png"
+
+      Application.delete_env(:arc, :asset_host)
+      Application.delete_env(:arc, :virtual_host)
+      Application.put_env(:arc, :bucket, env_bucket())
+      System.delete_env("ASSET_HOST")
+    end
+
+    test "config asset_host and empty storage_dir with virtual_host", %{name: name} do
+      Application.put_env(:arc, :bucket, "i_better_not_be_in_the_url")
+      Application.put_env(:arc, :asset_host, "test-asset-storage-host-nobucket.env")
+      Application.put_env(:arc, :storage_dir, "")
+      Application.put_env(:arc, :virtual_host, true)
+
+      assert DummyDefinitionWithNoStorageDir.url({@img_name, name}, signed: false) ==
+               "https://test-asset-storage-host-nobucket.env/#{name}.png"
+
+      Application.delete_env(:arc, :asset_host)
+      Application.delete_env(:arc, :virtual_host)
+      Application.put_env(:arc, :bucket, env_bucket())
+      System.delete_env("ASSET_HOST")
+    end
+
+    test "config asset_host and storage_dir with virtual_host", %{name: name} do
+      Application.put_env(:arc, :bucket, "i_better_not_be_in_the_url")
+      Application.put_env(:arc, :asset_host, "test-asset-storage-host-nobucket.env")
+      Application.put_env(:arc, :storage_dir, "my-storage-dir")
+      Application.put_env(:arc, :virtual_host, true)
+
+      assert DummyDefinitionWithNoStorageDir.url({@img_name, name}, signed: false) ==
+               "https://test-asset-storage-host-nobucket.env/my-storage-dir/#{name}.png"
+
+      Application.delete_env(:arc, :storage_dir)
+      Application.delete_env(:arc, :asset_host)
+      Application.delete_env(:arc, :virtual_host)
+      Application.put_env(:arc, :bucket, env_bucket())
+      System.delete_env("ASSET_HOST")
+    end
   end
 end
