@@ -68,9 +68,7 @@ defmodule Arc.Storage.GCS do
 
     base_url = build_url(definition, endpoint)
 
-    "#{base_url}?GoogleAccessId=#{client_id}&Expires=#{expiration}&Signature=#{
-      url_encoded_signature
-    }"
+    "#{base_url}?GoogleAccessId=#{client_id}&Expires=#{expiration}&Signature=#{url_encoded_signature}"
   end
 
   def delete(definition, version, file_and_scope) do

@@ -11,13 +11,13 @@ env:
 
 # https://github.com/elixir-lang/elixir/blob/master/lib/elixir/pages/compatibility-and-deprecations.md
 jobs:
-  elixir_1_11:
+  elixir_1_12:
     runs-on: ubuntu-20.04
     name: OTP ${{matrix.otp}} / Elixir ${{matrix.elixir}}
     strategy:
       matrix:
-        otp: [21.x, 22.x, 23.x]
-        elixir: [1.11.x]
+        otp: [22.x, 23.x, 24.x]
+        elixir: [1.12.x]
     steps:
       - uses: actions/checkout@v2
       - uses: erlef/setup-elixir@v1
@@ -29,12 +29,29 @@ jobs:
       # - run: mix credo --strict
       - run: mix coveralls.github
 
+  elixir_1_11:
+    runs-on: ubuntu-20.04
+    name: OTP ${{matrix.otp}} / Elixir ${{matrix.elixir}}
+    strategy:
+      matrix:
+        otp: [21.x, 22.x, 23.x, 24.x]
+        elixir: [1.11.x]
+    steps:
+      - uses: actions/checkout@v2
+      - uses: erlef/setup-elixir@v1
+        with:
+          otp-version: ${{matrix.otp}}
+          elixir-version: ${{matrix.elixir}}
+      - run: mix do deps.get, compile --warnings-as-errors
+      # - run: mix credo --strict
+      - run: mix coveralls.github
+
   elixir_1_10:
     runs-on: ubuntu-20.04
     name: OTP ${{matrix.otp}} / Elixir ${{matrix.elixir}}
     strategy:
       matrix:
-        otp: [21.x, 22.x]
+        otp: [21.x, 22.x, 23.x]
         elixir: [1.10.x]
     steps:
       - uses: actions/checkout@v2
@@ -43,7 +60,6 @@ jobs:
           otp-version: ${{matrix.otp}}
           elixir-version: ${{matrix.elixir}}
       - run: mix do deps.get, compile --warnings-as-errors
-      - run: mix format --dry-run --check-formatted
       # - run: mix credo --strict
       - run: mix coveralls.github
 
@@ -61,7 +77,6 @@ jobs:
           otp-version: ${{matrix.otp}}
           elixir-version: ${{matrix.elixir}}
       - run: mix do deps.get, compile --warnings-as-errors
-      - run: mix format --dry-run --check-formatted
       # - run: mix credo --strict
       - run: mix coveralls.github
 
@@ -79,6 +94,5 @@ jobs:
           otp-version: ${{matrix.otp}}
           elixir-version: ${{matrix.elixir}}
       - run: mix do deps.get, compile --warnings-as-errors
-      - run: mix format --dry-run --check-formatted
       # - run: mix credo --strict
       - run: mix coveralls.github
