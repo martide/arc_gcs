@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.2.4 (2021-09-16)
+  * Bump dependencies
+  * DefaultFetcher - return empty string from for_scope error (#140)
+
 ## v0.2.3 (2019-12-21)
   * Fixed missing alias for Goth.Token module (#101)
 
