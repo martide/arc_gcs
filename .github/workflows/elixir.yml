@@ -43,7 +43,6 @@ jobs:
           otp-version: ${{matrix.otp}}
           elixir-version: ${{matrix.elixir}}
       - run: mix do deps.get, compile --warnings-as-errors
-      - run: mix format --dry-run --check-formatted
       # - run: mix credo --strict
       - run: mix coveralls.github
 
@@ -61,7 +60,6 @@ jobs:
           otp-version: ${{matrix.otp}}
           elixir-version: ${{matrix.elixir}}
       - run: mix do deps.get, compile --warnings-as-errors
-      - run: mix format --dry-run --check-formatted
       # - run: mix credo --strict
       - run: mix coveralls.github
 
@@ -79,7 +77,6 @@ jobs:
           otp-version: ${{matrix.otp}}
           elixir-version: ${{matrix.elixir}}
       - run: mix do deps.get, compile --warnings-as-errors
-      - run: mix format --dry-run --check-formatted
       # - run: mix credo --strict
       - run: mix coveralls.github
 
@@ -97,6 +94,5 @@ jobs:
           otp-version: ${{matrix.otp}}
           elixir-version: ${{matrix.elixir}}
       - run: mix do deps.get, compile --warnings-as-errors
-      - run: mix format --dry-run --check-formatted
       # - run: mix credo --strict
       - run: mix coveralls.github
