@@ -30,7 +30,7 @@ defmodule Arc.Storage.GCS.Mixfile do
   defp package do
     [
       maintainers: ["Martide"],
-      licenses: ["Apache 2.0"],
+      licenses: ["Apache-2.0"],
       links: %{"GitHub" => "https://github.com/martide/arc_gcs"},
       files: ~w(mix.exs README.md lib)
     ]
