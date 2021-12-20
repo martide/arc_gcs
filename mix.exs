@@ -44,7 +44,7 @@ defmodule Arc.Storage.GCS.Mixfile do
       {:ex_doc, ">= 0.0.0", only: :dev},
       {:goth, "~> 1.0"},
       {:google_api_storage, "~> 0.13"},
-      {:mime, "~> 1.3"}
+      {:mime, "~> 2.0"}
     ]
   end
 end
