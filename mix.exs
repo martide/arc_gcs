@@ -7,7 +7,7 @@ defmodule Arc.Storage.GCS.Mixfile do
     [
       app: :arc_gcs,
       version: @version,
-      elixir: "~> 1.6",
+      elixir: "~> 1.10",
       deps: deps(),
       description: description(),
       package: package(),

@@ -1,4 +1,4 @@
-use Mix.Config
+import Config
 
 config :arc,
   bucket: {:system, "ARC_BUCKET"},
