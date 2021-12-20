@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.2.5 (2021-12-20)
+  * Bump minimum Elixir version to v1.10
+  * Bump dependencies
+
 ## v0.2.4 (2021-09-16)
   * Bump dependencies
   * DefaultFetcher - return empty string from for_scope error (#140)
