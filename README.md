@@ -5,6 +5,8 @@
 
 Arc GCS Provides an [`Arc`](https://github.com/stavro/arc) storage back-end for [`Google Cloud Storage`](https://cloud.google.com/storage/).
 
+## Please note as Arc has not been updated or activly maintained we are now switching over to [Waffle](https://hex.pm/packages/waffle_gcs)
+
 ## Installation
 
 Add the latest stable release to your `mix.exs` file:
